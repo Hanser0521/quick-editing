@@ -1,0 +1,38 @@
+{
+  "name": "quick-editing",
+  "version": "0.8.0",
+  "description": "Quick Markdown editing tools for Obsidian",
+  "main": "main.js",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "smoke": "node tests/bundle-smoke.cjs",
+    "verify": "node scripts/verify-project.mjs && node scripts/verify-main-types.mjs",
+    "check": "npm run verify && npm run test && npm run build && npm run smoke"
+  },
+  "keywords": [
+    "obsidian",
+    "editor",
+    "markdown"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "esbuild": "0.25.5",
+    "linkedom": "^0.18.13",
+    "obsidian": "1.13.1",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-frontmatter": "^2.0.1",
+    "mdast-util-math": "^3.0.0",
+    "micromark-extension-frontmatter": "^2.0.0",
+    "micromark-extension-math": "^3.1.0"
+  }
+}

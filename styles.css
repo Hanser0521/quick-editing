@@ -1,0 +1,27 @@
+.quick-editing-transformation-preview pre {
+  max-height: 12rem;
+  overflow: auto;
+  padding: var(--size-4-3);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.quick-editing-transformation-preview button + button {
+  margin-inline-start: var(--size-4-2);
+}
+
+.quick-editing-command-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--background-primary);
+}
+
+.quick-editing-command-list {
+  max-height: 32rem;
+  overflow: auto;
+  border-block: 1px solid var(--background-modifier-border);
+}
