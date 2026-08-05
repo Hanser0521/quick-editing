@@ -43,8 +43,8 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 ***************************************************************************** */
 
 
-const 当前版本 = '1.0.0';
-const 功能更新 = 'Quick Editing 1.0.0\n- 使用 Markdown 语法树保护代码、Frontmatter、公式和链接\n- 全文转换增加预计修改数量、前后预览和一键撤销\n- 智能粘贴改用 ClipboardEvent，HTML 表格通过 DOM 解析\n- 内链结合 MetadataCache 与 FileManager 生成相对链接\n- 新增一键删除图片链接，仅移除引用而不删除附件\n- 新增四个独立功能组、命令搜索和逐命令开关\n- 支持 Obsidian 多窗口与弹出窗口\n- 移除 27 条 Obsidian 核心已有的重复命令\n- 建立完整 TypeScript、单元测试、构建与发布检查';
+const 当前版本 = '1.0.1';
+const 功能更新 = 'Quick Editing 1.0.1\n- 不再注册默认快捷键，请在 Obsidian 快捷键设置中按需绑定\n- 清理生产调试输出和设置页硬编码标题标签\n- 构建产物仅随 GitHub Release 发布，不再提交到源码分支';
 const 宣传页面 = '查看 <a href="https://github.com/Hanser0521/quick-editing/releases">Quick Editing GitHub 页面</a>';
 const 上标图标 ='<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor"d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41M21.85 9h-4.88V8l.89-.82c.76-.64 1.32-1.18 1.7-1.63c.37-.44.56-.85.57-1.23a.884.884 0 0 0-.27-.7c-.18-.19-.47-.28-.86-.29c-.31.01-.58.07-.84.17l-.66.39l-.45-1.17c.27-.22.59-.39.98-.53S18.85 2 19.32 2c.78 0 1.38.2 1.78.61c.4.39.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.48-.76.93-1.27 1.36l-.64.52v.02h2.58V9z"/></svg>';
 const 下标图标 = '<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor" d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41m5.85 13.62h-4.88v-1l.89-.8c.76-.65 1.32-1.19 1.7-1.63c.37-.44.56-.85.57-1.24a.898.898 0 0 0-.27-.7c-.18-.16-.47-.28-.86-.28c-.31 0-.58.06-.84.18l-.66.38l-.45-1.17c.27-.21.59-.39.98-.53s.82-.24 1.29-.24c.78.04 1.38.25 1.78.66c.4.41.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.47-.76.92-1.27 1.36l-.64.52v.02h2.58v1.35z"/></svg>';
@@ -203,7 +203,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
     }
 
     async onload() {
-        //console.log(t('loadThisPlugin'));
         await this.loadSettings();
         this.registerEvent(this.app.workspace.on('editor-paste', (event, editor) => {
             if (!this.settings.featureGroups.smartPaste || !this.settings.smartPasteOnPaste) return;
@@ -229,14 +228,11 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'internal-link',
             name: '[[链接]]语法',
             callback: () => this.转换内部链接(),
-            hotkeys: [{ modifiers: ["Alt"], key: "Z" } ]
         });
-        //console.log('加载了'+this.settings.maxTry);
         this.addQuickCommand({
             id: 'tag-link-text',
             name: '标签双链互转',
             callback: () => this.标签双链互转(),
-            hotkeys: [{ modifiers: ["Mod","Alt","Shift"], key: "3" } ]
         });
 
         /**/
@@ -249,47 +245,40 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'internal-link2',
             name: '[[链接|同名]]语法',
             callback: () => this.转换同义链接(),
-            hotkeys: [{ modifiers: ["Alt"], key: "Q" } ]
         });
         this.addQuickCommand({
             id: 'auto-text',
             name: '智能符号',
             callback: () => this.智能符号(),
-            hotkeys: [{ modifiers: ["Alt"], key: ";"}]
         });
 
         this.addQuickCommand({
             id: 'open-up',
             name: '查看同级上方文件',
             callback: () => this.切换文件列表(-1),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "U" } ]
         });
 
         this.addQuickCommand({
             id: 'open-down',
             name: '查看同级下方文件',
             callback: () => this.切换文件列表(1),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "N" } ]
         });
         /*
         this.addQuickCommand({
             id: 'open-RightWin',
             name: '开右窗口预览',
             callback: () => this.开右窗口预览(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "L" } ]
         });
         */
         this.addQuickCommand({
             id: 'leftWin-Up',
             name: '左窗向上滚动',
             callback: () => this.左窗向上滚动(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "I" } ]
         });
         this.addQuickCommand({
             id: 'leftWin-Down',
             name: '左窗向下滚动',
             callback: () => this.左窗向下滚动(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "K" } ]
         });
         /**/
 
@@ -328,13 +317,11 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'cuti-format',
             name: '**粗体**格式刷',
             callback: () => this.粗体格式刷(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "C" } ]
         });
         this.addQuickCommand({
             id: 'gaoliang-format',
             name: '==高亮==格式刷',
             callback: () => this.高亮格式刷(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "G" } ]
         });
 		this.addQuickCommand({
             id: 'gaoliang1-text',
@@ -371,25 +358,21 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'xieti-format',
             name: '*斜体*格式刷',
             callback: () => this.斜体格式刷(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "X" } ]
         });
         this.addQuickCommand({
             id: 'shanchu-format',
             name: '~~删除线~~格式刷',
             callback: () => this.删除线格式刷(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "S" } ]
         });
         this.addQuickCommand({
             id: 'xiahua-format',
             name: '_下划线_格式刷',
             callback: () => this.下划线格式刷(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "H" } ]
         });
         this.addQuickCommand({
             id: 'xiahua-text',
             name: '_下划线_',
             callback: () => this.转换下划线(),
-            hotkeys: [{ modifiers: ["Alt"], key: "H" } ]
         });
 
         this.addQuickCommand({
@@ -422,13 +405,11 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'common-text',
             name: '转换无语法文本',
             callback: () => this.转换无语法文本(),
-            hotkeys: [{ modifiers: ["Mod","Alt"],key: "Z"}]
         });
         this.addQuickCommand({
             id: 'copy-text',
             name: '获取无语法文本',
             callback: () => this.获取无语法文本(),
-            hotkeys: [{ modifiers: ["Mod","Alt"],key: "C"}]
         });
 
         /*this.addQuickCommand({
@@ -460,7 +441,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.hColor = this.settings.hColor1;
                 this.转换文字颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Shift"], key: "1" } ]
         });
         this.addQuickCommand({
             id: 'text-Color2',
@@ -469,7 +449,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.hColor = this.settings.hColor2;
                 this.转换文字颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Shift"], key: "2" } ]
         });
         this.addQuickCommand({
             id: 'text-Color3',
@@ -478,7 +457,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.hColor = this.settings.hColor3;
                 this.转换文字颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Shift"], key: "3" } ]
         });
         this.addQuickCommand({
             id: 'text-Color4',
@@ -487,7 +465,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.hColor = this.settings.hColor4;
                 this.转换文字颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Shift"], key: "4" } ]
         });
         this.addQuickCommand({
             id: 'text-Color5',
@@ -496,7 +473,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.hColor = this.settings.hColor5;
                 this.转换文字颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Shift"], key: "5" } ]
         });
         this.addQuickCommand({
             id: 'text-background1',
@@ -505,7 +481,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.bColor = this.settings.bColor1;
                 this.转换背景颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Alt"], key: "1" } ]
         });
         this.addQuickCommand({
             id: 'text-background2',
@@ -514,7 +489,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.bColor = this.settings.bColor2;
                 this.转换背景颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Alt"], key: "2" } ]
         });
         this.addQuickCommand({
             id: 'text-background3',
@@ -523,7 +497,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.bColor = this.settings.bColor3;
                 this.转换背景颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Alt"], key: "3" } ]
         });
         this.addQuickCommand({
             id: 'text-background4',
@@ -532,7 +505,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.bColor = this.settings.bColor4;
                 this.转换背景颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Alt"], key: "4" } ]
         });
         this.addQuickCommand({
             id: 'text-background5',
@@ -541,7 +513,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 this.settings.bColor = this.settings.bColor5;
                 this.转换背景颜色();
             },
-            hotkeys: [{ modifiers: ["Mod","Alt"], key: "5" } ]
         });
 
         this.addQuickCommand({
@@ -622,7 +593,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'paste-text',
             name: '智能粘贴',
             callback: () => this.智能粘贴(),
-            hotkeys: [{ modifiers: ["Mod","Alt"], key: "V" } ]
         });
         this.addQuickCommand({
             id: 'paste-picText',
@@ -633,7 +603,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'jisuan-form',
             name: '计算所选结果',
             callback: () => this.计算所选结果(),
-            hotkeys: [{ modifiers: [], key: "F9" } ]
         });
         this.addQuickCommand({
             id: 'edit-intext',
@@ -744,7 +713,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'zhe-level-lines',
             name: '折叠同级标题',
             callback: () => this.折叠同级标题(),
-            hotkeys: [{ modifiers: ["Mod","Shift","Alt"], key: "D" } ]
         });
 
         this.addQuickCommand({
@@ -774,44 +742,37 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'modify-link-showname',
             name: '修改内部链接的显示名称',
             callback: () => this.修改内部链接的显示名称(),
-            hotkeys: [{ modifiers: ["Alt"], key: "\\" } ]
         });
         this.addQuickCommand({
             id: 'zhe-level2',
             name: '折叠二级标题',
             callback: () => this.折叠某级别标题(2),
-            hotkeys: [{ modifiers: ["Shift"], key: "F2" } ]
         });
         this.addQuickCommand({
             id: 'zhe-level3',
             name: '折叠三级标题',
             callback: () => this.折叠某级别标题(3),
-            hotkeys: [{ modifiers: ["Shift"], key: "F3" } ]
         });
         this.addQuickCommand({
             id: 'zhe-level4',
             name: '折叠四级标题',
             callback: () => this.折叠某级别标题(4),
-            hotkeys: [{ modifiers: ["Shift"], key: "F4" } ]
         });
         this.addQuickCommand({
             id: 'zhe-level5',
             name: '折叠五级标题',
             callback: () => this.折叠某级别标题(5),
-            hotkeys: [{ modifiers: ["Shift"], key: "F5" } ]
         });
         this.addQuickCommand({
             id: 'zhe-level6',
             name: '折叠六级标题',
             callback: () => this.折叠某级别标题(6),
-            hotkeys: [{ modifiers: ["Shift"], key: "F6" } ]
         });
 
         this.addQuickCommand({
             id: 'add-Line0',
             name: '插入有效空行',
             callback: () => this.插入有效空行(),
-            hotkeys: [{ modifiers: ["Mod","Shift","Alt"], key: "Enter" } ]
         });
         this.addQuickCommand({
             id: 'space-lines',
@@ -822,7 +783,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'add-lines',
             name: '批量插入空行',
             callback: () => this.批量插入空行(),
-            hotkeys: [{ modifiers: ["Mod","Shift"], key: "L" } ]
         });
         this.addQuickCommand({
             id: 'add-line1',
@@ -838,7 +798,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'del-lines',
             name: '批量去除空行',
             callback: () => this.批量去除空行(),
-            hotkeys: [{ modifiers: ["Mod","Alt"], key: "l" } ]
         });
         this.addQuickCommand({
             id: 'add-twoSpace',
@@ -1061,7 +1020,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(this.settings.isShowNum){
             let maxTry = this.settings.maxTry;
             let 进度 = Math.round(笔记正文.length/maxTry*100)+"% → "+maxTry +"字";
-            //console.log(maxTry+" "+进度);
             this.footnoteStatusBar.setText(进度);
         }
     }
@@ -1494,7 +1452,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
     获取笔记正文(): string {
         var cmEditor = this.获取编辑模式 ();
         if (!cmEditor) return '';
-        //console.log("笔记正文\n"+cmEditor.getValue())
         return cmEditor.getValue();
     };
 
@@ -1614,7 +1571,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
         编辑模式 = activeEditor;
         聚焦编辑 = 编辑模式.hasFocus();
         笔记全文 = 编辑模式.getDoc();   //此方法获取的笔记全文 是对象，不是文本
-        //console.log("笔记全文\n"+笔记全文)
         笔记正文 = this.获取笔记正文(); //此处获取的是笔记内容的纯文本
         所选文本 = this.获取所选文本();
         当前光标 = 编辑模式.getCursor();
@@ -1645,7 +1601,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     光标跳转(方向: '上' | '下') {
         if (!this.获取编辑器信息()) return;
-        //var 选择字数=0;
         var 表达式;
         if(编辑模式 == null){return;};
         //new obsidian.Notice(所选文本+"\n"+当前行文本);
@@ -1692,7 +1647,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             }else{
                 return;
             }
-            console.log('表达式 '+表达式);
             //逐行判断是否符合指定表达式
             for (var i=1;i<=末行行号;i++){
                 const 新行号 = 方向 === '下' ? 当前行号 + i : 当前行号 - i;
@@ -2774,7 +2728,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             新文本 = 当前行文本.replace(/^(\>*(\[[!\w]+\])?\s*)#+\s/,"$1");
         }else{  //列表、引用，先转为普通文本，再转为标题
             新文本 = 当前行文本.replace(/^\s*(#*|\>|\-|\d+\.)\s*/m,"");
-            console.log(新文本);
             新文本 = _str+" "+新文本;
         }
         //笔记全文.replaceRange(新文本, {line:当前行号,ch:0}, {line:当前行号,ch:当前行文本.length});
@@ -3482,7 +3435,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             //new obsidian.Notice("当前为标题行 "+_str);
             var 末行行号 = 编辑模式.lastLine();
             var arr = 编辑模式.getRange({line:0,ch:0},{line:末行行号,ch:0}).split("\n");
-            //console.log(arr);
             for (var i=arr.length; i>=0; i--) {
                 const line = arr[i];
                 if(line?.startsWith(_str) && line[_str.length] !== "#") {
@@ -3545,7 +3497,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     //["![[", "内部链接文本" , "]]"]
     内部链接分割(内部链接含符号: string): [string, string, string] | null {
-        //console.log("内部链接含符号 = " + 内部链接含符号);
         var m = 内部链接含符号.match(/^(!?\[\[)(.*)(\]\])$/);
         if (m?.[1] !== undefined && m[2] !== undefined && m[3] !== undefined) {
             return [m[1], m[2], m[3]];
@@ -3571,9 +3522,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if (名称.indexOf("^") > -1) //有段落标记，则删除
             名称 = 名称.replace(/\s+\^.*/, '');
         内部链接数组[1] += `|${名称}`;
-        //console.log(内部链接数组);
         arr[1] = 内部链接数组.join("");
-        //console.log(arr);
         编辑模式.setLine(当前行号, arr.join(""));
         编辑模式.setCursor({line:当前行号,ch:arr[0].length+arr[1].length-2}); //-2是因为
     }
@@ -3583,7 +3532,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
         当前光标 = 编辑模式.getCursor();
         当前行号 = 当前光标.line;
         var arr = 编辑模式.getRange({line:0,ch:0},{line:当前行号,ch:0}).split("\n");
-        //console.log(arr);
         //第一个要匹配的 re
         const lastLine = arr.at(-1) ?? '';
         const lastHeading = lastLine.match(/^(\#+)\s/);
@@ -3595,10 +3543,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
         } else {
             var re = /^\#+\s/;
         }
-        //console.log(re);
         var arrRes: string[] = [];
         for (var i=arr.length-1; i>=0; i--) {
-            //console.log(arr[i]);
             const line = arr[i];
             if (line !== undefined && re.test(line)) {
                 arrRes.push(line);
@@ -3608,7 +3554,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 if (l == 0)
                     return arrRes;
                 re = new RegExp(`^\#{${l}}\\s`);
-                //console.log(re);
             }
         }
         return arrRes;
@@ -3875,7 +3820,10 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
         obsidian.setIcon(heroIcon, 'sparkles');
         const heroCopy = hero.createDiv({ cls: 'quick-editing-settings-hero-copy' });
         const titleRow = heroCopy.createDiv({ cls: 'quick-editing-settings-title-row' });
-        titleRow.createEl('h2', { text: 'Quick Editing' });
+        titleRow.createDiv({
+            cls: 'quick-editing-settings-title',
+            text: 'Quick Editing',
+        });
         titleRow.createSpan({
             cls: 'quick-editing-settings-version',
             text: `V${当前版本}`,

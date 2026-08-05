@@ -1,7 +1,7 @@
 {
   "id": "quick-editing",
   "name": "Quick Editing",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.8.7",
   "description": "快速完成 Markdown 格式转换、智能粘贴、文本清理、链接处理、空格与空行整理等常用编辑操作。",
   "author": "Hanser0521",

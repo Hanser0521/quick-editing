@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1 - 2026-08-05
+
+- Removed all plugin-provided default hotkeys to comply with the current
+  Obsidian community plugin guidelines. Users can assign any command in
+  Obsidian's Hotkeys settings.
+- Removed production debug logging and replaced the hard-coded settings-page
+  heading element with a plugin-scoped styled title.
+- Stopped tracking the generated `main.js` bundle in the source branch. Release
+  assets continue to be built and attached by GitHub Actions.
+- Added signed GitHub artifact attestations for all release assets.
+- Added a release check that rejects commands with default hotkeys.
+
 ## 1.0.0 - 2026-08-05
 
 - Renamed the plugin and repository to Quick Editing with the new

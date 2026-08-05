@@ -47,6 +47,7 @@ const mainSourceFile = ts.createSourceFile(
 );
 const commandIds = [];
 let commandCallCount = 0;
+const commandsWithDefaultHotkeys = [];
 const collectCommandIds = (node) => {
   if (
     ts.isCallExpression(node)
@@ -63,6 +64,12 @@ const collectCommandIds = (node) => {
       );
       if (idProperty && ts.isPropertyAssignment(idProperty) && ts.isStringLiteral(idProperty.initializer)) {
         commandIds.push(idProperty.initializer.text);
+        const hotkeysProperty = command.properties.find(
+          (property) => ts.isPropertyAssignment(property)
+            && ts.isIdentifier(property.name)
+            && property.name.text === 'hotkeys',
+        );
+        if (hotkeysProperty) commandsWithDefaultHotkeys.push(idProperty.initializer.text);
       }
     }
   }
@@ -70,6 +77,11 @@ const collectCommandIds = (node) => {
 };
 collectCommandIds(mainSourceFile);
 assert.equal(commandIds.length, commandCallCount, 'every active addQuickCommand call must use a literal ID');
+assert.deepEqual(
+  commandsWithDefaultHotkeys,
+  [],
+  'commands must not register default hotkeys; users can assign hotkeys in Obsidian settings',
+);
 const coreCommandReplacements = {
   'set-mode': 'editor:toggle-source / markdown:toggle-preview',
   'tag-text': 'editor:insert-tag',

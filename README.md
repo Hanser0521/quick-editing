@@ -2,13 +2,21 @@
 
 Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件。它提供智能符号、格式刷、智能粘贴、内部链接、文本清理、空格与空行整理等高频操作，并为批量修改加入 Markdown 上下文保护、变更预览和撤销入口。
 
-- 当前版本：`1.0.0`
+- 当前版本：`1.0.1`
 - Obsidian 最低版本：`1.8.7`
 - 支持平台：桌面端
 - 实机验证：macOS、Obsidian `1.13.4`
 - 插件 ID：`quick-editing`
 
 Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-canzi/Enhanced-editing](https://github.com/obsidian-canzi/Enhanced-editing) 继续维护。项目已更名并使用新的插件 ID，不会覆盖旧版“增强编辑”的安装目录。
+
+## 1.0.1 社区发布准备
+
+- 按当前 Obsidian 社区插件规范移除全部插件默认快捷键；所有命令仍可在“设置 → 快捷键”中自由绑定。
+- 清理生产调试输出，并移除设置页硬编码的标题标签。
+- `main.js` 仅由 GitHub Actions 构建并附加到 Release，不再作为源码提交。
+- GitHub Actions 会为发布资产生成可验证的构建来源证明。
+- 发布检查新增“禁止默认快捷键”断言，防止后续版本重新引入。
 
 ## 1.0.0 更新概要
 
@@ -76,11 +84,13 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 - 文本整理：中英文标点、外来文本、错误语法、意外断行、注释、简繁转换和路径格式。
 - 辅助操作：计算选区、提取标注、修改文件名、搜索选区和列表转图示。
 
-## 常用默认快捷键
+## 快捷键配置
 
 `Mod` 在 macOS 上表示 `Command`，在 Windows/Linux 上表示 `Ctrl`。
 
-| 操作 | 快捷键 |
+Quick Editing 不注册任何默认快捷键，以免覆盖用户现有配置或与其他插件冲突。下面是可在“设置 → 快捷键”中手动绑定的建议组合：
+
+| 操作 | 建议快捷键 |
 | --- | --- |
 | 添加/移除内部链接 | `Alt+Z` |
 | 转换为同名链接 | `Alt+Q` |
