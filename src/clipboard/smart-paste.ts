@@ -25,7 +25,7 @@ function isHttpUrl(value: string): boolean {
 }
 
 function escapeLabel(value: string): string {
-  return value.replace(/([\\\[\]])/g, '\\$1');
+  return value.replace(/[[\]\\]/g, '\\$&');
 }
 
 function escapeTableCell(value: string): string {

@@ -43,9 +43,9 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 ***************************************************************************** */
 
 
-const 当前版本 = '1.0.1';
-const 功能更新 = 'Quick Editing 1.0.1\n- 不再注册默认快捷键，请在 Obsidian 快捷键设置中按需绑定\n- 清理生产调试输出和设置页硬编码标题标签\n- 构建产物仅随 GitHub Release 发布，不再提交到源码分支';
-const 宣传页面 = '查看 <a href="https://github.com/Hanser0521/quick-editing/releases">Quick Editing GitHub 页面</a>';
+const 当前版本 = '1.0.2';
+const 功能更新 = 'Quick Editing 1.0.2\n- 修复社区审核发现的不安全 HTML 写入\n- 完善英文安装、使用和隐私说明\n- 精简 Release，只保留社区插件需要的三个文件';
+const 发布页面 = 'https://github.com/Hanser0521/quick-editing/releases';
 const 上标图标 ='<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor"d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41M21.85 9h-4.88V8l.89-.82c.76-.64 1.32-1.18 1.7-1.63c.37-.44.56-.85.57-1.23a.884.884 0 0 0-.27-.7c-.18-.19-.47-.28-.86-.29c-.31.01-.58.07-.84.17l-.66.39l-.45-1.17c.27-.22.59-.39.98-.53S18.85 2 19.32 2c.78 0 1.38.2 1.78.61c.4.39.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.48-.76.93-1.27 1.36l-.64.52v.02h2.58V9z"/></svg>';
 const 下标图标 = '<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor" d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41m5.85 13.62h-4.88v-1l.89-.8c.76-.65 1.32-1.19 1.7-1.63c.37-.44.56-.85.57-1.24a.898.898 0 0 0-.27-.7c-.18-.16-.47-.28-.86-.28c-.31 0-.58.06-.84.18l-.66.38l-.45-1.17c.27-.21.59-.39.98-.53s.82-.24 1.29-.24c.78.04 1.38.25 1.78.66c.4.41.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.47-.76.92-1.27 1.36l-.64.52v.02h2.58v1.35z"/></svg>';
 const 格式刷图标 ='<svg t="1650117667147" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="12959" width="120" height="120"><path d="M409.856 331.9296l103.1936-103.168 307.712 307.712-103.168 103.168z" fill="#777677" p-id="12960"></path><path d="M384 358.4s-153.6 128-256 99.84c23.04 38.4 53.76 76.8 51.2 79.36 79.36 17.92 204.8-51.2 204.8-51.2l25.6 25.6s-133.12 102.4-204.8 76.8c66.56 99.84 212.48 225.28 256 256 97.28 0 230.4-179.2 230.4-179.2L384 358.4z" fill="#FCAF6D" p-id="12961"></path><path d="M641.3568 306.9952l153.856-153.856 103.1936 103.168-153.856 153.856z" fill="#777677" p-id="12962"></path></svg>';
@@ -975,10 +975,21 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
                 if(this.settings.version != 当前版本){
                     const noticeContent = createFragment();
-                    noticeContent.createEl("p").innerHTML = "<b>欢迎使用 Quick Editing！</b>";
-                    noticeContent.createEl("p").innerHTML = 功能更新;
-                    noticeContent.createEl("button").innerHTML = 宣传页面;
-                    noticeContent.createEl("p").innerHTML = '点击此处 可关闭提示窗口......';
+                    const noticeHeading = noticeContent.createEl('p');
+                    noticeHeading.createEl('strong', { text: '欢迎使用 Quick Editing！' });
+                    for (const line of 功能更新.split('\n')) {
+                        noticeContent.createEl('div', { text: line });
+                    }
+                    const releaseParagraph = noticeContent.createEl('p');
+                    releaseParagraph.createEl('a', {
+                        text: '查看 Quick Editing GitHub 发布页面',
+                        attr: {
+                            href: 发布页面,
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                        },
+                    });
+                    noticeContent.createEl('p', { text: '点击此处可关闭提示窗口。' });
                     new obsidian.Notice(noticeContent, 0);
                     this.settings.version = 当前版本;
                     this.saveSettings();
@@ -3408,9 +3419,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         let lineId = 1;
         for(var i= 0;i<=末行行号;i++){
             var 本行文本 = 编辑模式.getLine(i);
-            if(排除行.test(本行文本)){
-
-            }else{
+            if(!排除行.test(本行文本)){
                 笔记全文.replaceRange(lineId+". ", {line:i,ch:0},{line:i,ch:0});
                 lineId ++;
             }
@@ -3625,8 +3634,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         let 已缩进 = 当前行文本.includes("‌　　");
         let 偏移 = 当前光标.ch;
         新文本 = 当前行文本.replace(/^[‌‌‌‌　]+/mg,"");
-        if(已缩进){
-        }else{
+        if(!已缩进){
             新文本 = 新文本.replace(/^(?!(\s*\d+\.\s|\s*\-\.\s|[\n\s\>#]+|```|\-\-\-|\|[^\|]|\*\*\*))/mg,"‌‌‌‌　　");
         }
         笔记全文.replaceRange(新文本,  {line:当前行号,ch:0}, {line:当前行号,ch:当前行文本.length});
@@ -3896,7 +3904,6 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
             .addSlider((slider) => slider
                 .setLimits(25, 900, 25)
                 .setValue(plugin.settings.maxScroll)
-                .setDynamicTooltip()
                 .onChange(async (value) => {
                     plugin.settings.maxScroll = value;
                     await plugin.saveSettings();

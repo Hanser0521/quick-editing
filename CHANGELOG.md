@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.2 - 2026-08-05
+
+- Replaced release-notice `innerHTML` writes with safe DOM construction.
+- Updated the manifest description and author URL for the current Obsidian
+  community plugin requirements.
+- Added concise English installation, usage, privacy, and permission
+  documentation for community review.
+- Removed the optional ZIP archive from GitHub Releases so each release contains
+  only `main.js`, `manifest.json`, and `styles.css`.
+- Removed a deprecated slider tooltip call and simplified two empty conditional
+  branches reported by automated review.
+
 ## 1.0.1 - 2026-08-05
 
 - Removed all plugin-provided default hotkeys to comply with the current

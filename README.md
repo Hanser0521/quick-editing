@@ -1,14 +1,75 @@
 # Quick Editing
 
+## Overview
+
+Quick Editing is a desktop Obsidian plugin for fast Markdown transformations,
+smart paste, internal-link handling, text cleanup, spacing, and blank-line
+editing. Syntax-aware transformations protect Frontmatter, code, math, HTML,
+links, images, and Obsidian comments. Full-document operations show a change
+preview and provide an undo action.
+
+Quick Editing is maintained by
+[Hanser0521](https://github.com/Hanser0521) from the original
+[Enhanced Editing project](https://github.com/obsidian-canzi/Enhanced-editing),
+with attribution and public upstream authorization recorded in
+[NOTICE](./NOTICE).
+
+## Features
+
+- Four independently configurable groups: Smart Symbols, Format Brushes, Smart
+  Paste, and Full-document Cleanup.
+- Syntax-tree-aware Markdown transformations with previews and undo notices.
+- ClipboardEvent-based rich-text paste and DOM-based HTML table conversion.
+- MetadataCache-aware internal links generated through Obsidian's link API.
+- Searchable settings, per-command switches, and multi-window support.
+- One-click removal of image links without deleting attachment files.
+
+## Usage
+
+1. Enable the feature groups you need in **Settings → Quick Editing**.
+2. Search the command list to enable or disable individual commands.
+3. Open **Settings → Hotkeys** and assign shortcuts to the Quick Editing
+   commands you use. The plugin intentionally registers no default hotkeys.
+4. Run a command from the Command palette, a configured hotkey, or the format
+   brush toolbar. Full-document changes show an estimated change count before
+   they are applied.
+
+## Installation
+
+Download `main.js`, `manifest.json`, and `styles.css` from the latest
+[GitHub Release](https://github.com/Hanser0521/quick-editing/releases), then put
+the files in `<vault>/.obsidian/plugins/quick-editing/`. Reload Obsidian and
+enable **Quick Editing** under Community plugins.
+
+For beta installation through BRAT, add `Hanser0521/quick-editing`.
+
+## Privacy and permissions
+
+Quick Editing has no telemetry and makes no network requests. It reads vault
+metadata or note files only when a link or cleanup command requires them. It
+reads clipboard contents only during smart paste or the manual paste command.
+The plugin never deletes image attachment files; the image-link cleanup command
+only changes Markdown content after a preview.
+
+## 中文说明
+
 Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件。它提供智能符号、格式刷、智能粘贴、内部链接、文本清理、空格与空行整理等高频操作，并为批量修改加入 Markdown 上下文保护、变更预览和撤销入口。
 
-- 当前版本：`1.0.1`
+- 当前版本：`1.0.2`
 - Obsidian 最低版本：`1.8.7`
 - 支持平台：桌面端
 - 实机验证：macOS、Obsidian `1.13.4`
 - 插件 ID：`quick-editing`
 
 Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-canzi/Enhanced-editing](https://github.com/obsidian-canzi/Enhanced-editing) 继续维护。项目已更名并使用新的插件 ID，不会覆盖旧版“增强编辑”的安装目录。
+
+## 1.0.2 社区审核修复
+
+- 移除更新提示中的 `innerHTML`，全部改用安全 DOM API 创建文本和链接。
+- 按社区清单修正插件描述结尾和作者主页链接。
+- 增加英文功能、安装、使用、隐私及权限说明。
+- GitHub Release 只发布 `main.js`、`manifest.json`、`styles.css`，不再附带额外 ZIP。
+- 移除废弃的滑块提示 API，并简化自动审核指出的空条件分支。
 
 ## 1.0.1 社区发布准备
 

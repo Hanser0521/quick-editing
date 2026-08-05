@@ -23,8 +23,6 @@ jobs:
       - run: npm run check
       - name: Verify tag matches manifest
         run: test "$GITHUB_REF_NAME" = "$(node -p "require('./manifest.json').version")"
-      - name: Package plugin
-        run: zip "quick-editing-$GITHUB_REF_NAME.zip" main.js manifest.json styles.css
       - name: Attest release assets
         uses: actions/attest@v4
         with:
@@ -32,11 +30,10 @@ jobs:
             main.js
             manifest.json
             styles.css
-            quick-editing-${{ github.ref_name }}.zip
       - name: Create GitHub release
         run: >-
           gh release create "$GITHUB_REF_NAME"
-          main.js manifest.json styles.css "quick-editing-$GITHUB_REF_NAME.zip"
+          main.js manifest.json styles.css
           --verify-tag --generate-notes --title "Quick Editing $GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ github.token }}

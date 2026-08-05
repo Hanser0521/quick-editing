@@ -1,7 +1,7 @@
 export type HtmlDocumentParser = (html: string) => Document;
 
 function escapeMarkdown(value: string): string {
-  return value.replace(/([\\[\]])/g, '\\$1');
+  return value.replace(/[[\]\\]/g, '\\$&');
 }
 
 function escapeTableCell(value: string): string {
@@ -9,7 +9,12 @@ function escapeTableCell(value: string): string {
 }
 
 function safeUrl(value: string, image = false): string | null {
-  const normalized = value.trim().replace(/[\u0000-\u001f\u007f]/g, '');
+  const normalized = Array.from(value.trim())
+    .filter((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint >= 0x20 && codePoint !== 0x7f;
+    })
+    .join('');
   if (/^(?:javascript|vbscript):/i.test(normalized)) return null;
   if (/^data:/i.test(normalized)) {
     if (!image || !/^data:image\/(?:avif|gif|jpeg|png|webp);base64,/i.test(normalized)) {
