@@ -23,8 +23,8 @@ assert.equal(
 assert.match(fs.readFileSync('LICENSE', 'utf8'), /^MIT License\n/, 'LICENSE must contain MIT text');
 assert.match(
   fs.readFileSync('NOTICE', 'utf8'),
-  /written authorization from obsidian-canzi/,
-  'NOTICE must preserve the written authorization record',
+  /Enhanced-editing\/issues\/93#issuecomment-5189283811/,
+  'NOTICE must preserve the public Issue authorization record',
 );
 assert.match(manifest.id, /^[a-z0-9-]+$/, 'plugin ID must use lowercase letters, numbers, and hyphens');
 assert.equal(manifest.id.includes('obsidian'), false, 'plugin ID must not contain obsidian');

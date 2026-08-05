@@ -159,11 +159,11 @@ npm run check
 本项目整体以 [MIT License](./LICENSE) 发布：
 
 - 官方旧版仓库 [Enhanced-Editing-legacy-version](https://github.com/obsidian-canzi/Enhanced-Editing-legacy-version) 的 0.4.4 代码原以 MIT License 发布，本仓库保留原版权声明。
-- 2026 年 8 月 5 日，维护者取得了 [obsidian-canzi](https://github.com/obsidian-canzi) 对后期历史实现继续维护并以 MIT License 发布的书面授权；邮件原件由维护者私下留存，不随仓库公开。
+- 2026 年 8 月 5 日，维护者在上游公开的 [授权申请 Issue #93](https://github.com/obsidian-canzi/Enhanced-editing/issues/93) 中，明确申请以 MIT License 使用、修改、构建、再分发和发布衍生版本；原作者 [obsidian-canzi 的公开回复](https://github.com/obsidian-canzi/Enhanced-editing/issues/93#issuecomment-5189283811)为“请随意发布”。
 - Hanser0521 在 2026 年新增的现代化模块、测试、工程配置和文档同样以 MIT License 发布。
 - 所有历史作者和贡献者的署名均予保留，第三方依赖继续适用各自的许可证。
 
-来源、贡献者署名与书面授权记录见 [NOTICE](./NOTICE)。版本更新记录见 [CHANGELOG.md](./CHANGELOG.md)。
+来源、贡献者署名与公开 Issue 授权记录见 [NOTICE](./NOTICE)。版本更新记录见 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 致谢
 

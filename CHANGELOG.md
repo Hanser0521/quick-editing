@@ -20,5 +20,6 @@
   image links without deleting attachment files.
 - Added TypeScript validation, unit tests, production builds, bundle smoke
   tests, and automated GitHub releases.
-- Adopted a single MIT License after written authorization for the later
-  historical implementation; preserved upstream and contributor attribution.
+- Adopted a single MIT License after the upstream owner explicitly authorized
+  publication in public GitHub Issue #93; preserved upstream and contributor
+  attribution.
