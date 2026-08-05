@@ -56,6 +56,7 @@ const FULL_DOCUMENT_COMMANDS = new Set([
   'add-allSpspace',
   'del-allSpspace',
   'del-allZhushi',
+  'remove-image-links',
   'edit-intext',
   'edit-biaodian',
   'edit-yufa',

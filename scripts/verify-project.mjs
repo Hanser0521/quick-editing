@@ -14,6 +14,18 @@ const uncheckedFiles = sourceFiles.filter((file) =>
 
 assert.equal(packageJson.version, manifest.version, 'package and manifest versions differ');
 assert.equal(packageJson.name, manifest.id, 'package name and plugin ID differ');
+assert.equal(packageJson.license, 'MIT', 'package must declare the repository MIT license');
+assert.equal(
+  JSON.parse(fs.readFileSync('package-lock.json', 'utf8')).packages[''].license,
+  packageJson.license,
+  'package and lockfile licenses differ',
+);
+assert.match(fs.readFileSync('LICENSE', 'utf8'), /^MIT License\n/, 'LICENSE must contain MIT text');
+assert.match(
+  fs.readFileSync('NOTICE', 'utf8'),
+  /written authorization from obsidian-canzi/,
+  'NOTICE must preserve the written authorization record',
+);
 assert.match(manifest.id, /^[a-z0-9-]+$/, 'plugin ID must use lowercase letters, numbers, and hyphens');
 assert.equal(manifest.id.includes('obsidian'), false, 'plugin ID must not contain obsidian');
 assert.equal(manifest.name, 'Quick Editing', 'unexpected plugin display name');

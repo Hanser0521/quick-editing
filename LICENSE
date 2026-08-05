@@ -1,26 +1,8 @@
-QUICK EDITING LICENSING NOTICE
-
-This repository contains material with different licensing status. This file
-defines the scope of the license grant made by the Quick Editing maintainer and
-preserves the license notice distributed with the official legacy project.
-
-1. MIT-licensed material
-
-The MIT License below applies to:
-
-- material originating from the official Enhanced-Editing-legacy-version
-  repository at or before version 0.4.4, to the extent covered by that
-  repository's MIT license; and
-- original additions authored by Hanser0521 in 2026, including the new helper
-  modules, tests, build scripts, and documentation, to the extent that those
-  additions do not incorporate excluded upstream material.
-
-The original 2021 copyright notice is preserved verbatim. The 2026 copyright
-notice applies only to original contributions by Hanser0521.
-
 MIT License
 
 Copyright (c) 2021 Mouth on Cloud
+Copyright (c) 2021-2023 obsidian-canzi
+Copyright (c) 2022 cumany
 Copyright (c) 2026 Hanser0521
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -40,33 +22,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-2. Excluded upstream material
-
-Quick Editing also contains historical material derived from versions 0.5.x
-through 0.6.4 of:
-
-https://github.com/obsidian-canzi/Enhanced-editing
-
-As of 2026-08-05, that successor repository does not contain an explicit
-license file. This document does not grant rights owned by obsidian-canzi or
-other upstream contributors in material first introduced there after the
-MIT-licensed legacy version. Those rights remain with their respective owners.
-
-The public availability of source code, or the ability to view or fork a
-repository on GitHub, is not represented here as an open-source license grant.
-Anyone planning redistribution, commercial use, relicensing, or submission to
-a third-party plugin directory should obtain any additional permission that
-may be required from the relevant rights holders.
-
-3. Dependencies
-
-Third-party dependencies keep their own licenses. Their inclusion in source or
-compiled output does not change those licenses.
-
-4. No expansion of rights
-
-Nothing in this notice waives, transfers, or relicenses rights that the Quick
-Editing maintainer does not own. If written permission covering the excluded
-upstream material is obtained, this notice should be updated in a later
-release so that the repository can adopt a single, unambiguous license.

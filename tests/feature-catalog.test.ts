@@ -10,6 +10,7 @@ test('maps independent command groups', () => {
   assert.equal(featureGroupForCommand('auto-text'), 'smartSymbols');
   assert.equal(featureGroupForCommand('paste-text'), 'smartPaste');
   assert.equal(featureGroupForCommand('edit-biaodian'), 'fullDocumentCleanup');
+  assert.equal(featureGroupForCommand('remove-image-links'), 'fullDocumentCleanup');
   assert.equal(featureGroupForCommand('cuti-format'), 'formatBrush');
   assert.equal(featureGroupForCommand('internal-link'), undefined);
 });

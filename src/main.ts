@@ -30,6 +30,7 @@ import {
     repairUnexpectedLineBreaks,
 } from './transformations/cleanup';
 import { linkPotentialTitles } from './transformations/potential-links';
+import { removeImageLinks, removeImageLinksInRange } from './transformations/image-links';
 import { findAdjacentMatch } from './editor/find-adjacent-match';
 import { summarizeTransformation } from './transformations/preview';
 import { TransformationPreviewModal } from './ui/transformation-preview-modal';
@@ -43,7 +44,7 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 
 
 const 当前版本 = '1.0.0';
-const 功能更新 = 'Quick Editing 1.0.0\n- 使用 Markdown 语法树保护代码、Frontmatter、公式和链接\n- 全文转换增加预计修改数量、前后预览和一键撤销\n- 智能粘贴改用 ClipboardEvent，HTML 表格通过 DOM 解析\n- 内链结合 MetadataCache 与 FileManager 生成相对链接\n- 新增四个独立功能组、命令搜索和逐命令开关\n- 支持 Obsidian 多窗口与弹出窗口\n- 移除 27 条 Obsidian 核心已有的重复命令\n- 建立完整 TypeScript、单元测试、构建与发布检查';
+const 功能更新 = 'Quick Editing 1.0.0\n- 使用 Markdown 语法树保护代码、Frontmatter、公式和链接\n- 全文转换增加预计修改数量、前后预览和一键撤销\n- 智能粘贴改用 ClipboardEvent，HTML 表格通过 DOM 解析\n- 内链结合 MetadataCache 与 FileManager 生成相对链接\n- 新增一键删除图片链接，仅移除引用而不删除附件\n- 新增四个独立功能组、命令搜索和逐命令开关\n- 支持 Obsidian 多窗口与弹出窗口\n- 移除 27 条 Obsidian 核心已有的重复命令\n- 建立完整 TypeScript、单元测试、构建与发布检查';
 const 宣传页面 = '查看 <a href="https://github.com/Hanser0521/quick-editing/releases">Quick Editing GitHub 页面</a>';
 const 上标图标 ='<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor"d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41M21.85 9h-4.88V8l.89-.82c.76-.64 1.32-1.18 1.7-1.63c.37-.44.56-.85.57-1.23a.884.884 0 0 0-.27-.7c-.18-.19-.47-.28-.86-.29c-.31.01-.58.07-.84.17l-.66.39l-.45-1.17c.27-.22.59-.39.98-.53S18.85 2 19.32 2c.78 0 1.38.2 1.78.61c.4.39.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.48-.76.93-1.27 1.36l-.64.52v.02h2.58V9z"/></svg>';
 const 下标图标 = '<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor" d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41m5.85 13.62h-4.88v-1l.89-.8c.76-.65 1.32-1.19 1.7-1.63c.37-.44.56-.85.57-1.24a.898.898 0 0 0-.27-.7c-.18-.16-.47-.28-.86-.28c-.31 0-.58.06-.84.18l-.66.38l-.45-1.17c.27-.21.59-.39.98-.53s.82-.24 1.29-.24c.78.04 1.38.25 1.78.66c.4.41.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.47-.76.92-1.27 1.36l-.64.52v.02h2.58v1.35z"/></svg>';
@@ -410,6 +411,11 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'clear-link',
             name: '去除超链接语法()',
             callback: () => this.去除超链接语法()
+        });
+        this.addQuickCommand({
+            id: 'remove-image-links',
+            name: '一键删除图片链接',
+            callback: () => this.删除图片链接()
         });
 
         this.addQuickCommand({
@@ -1514,6 +1520,10 @@ class QuickEditingPlugin extends obsidian.Plugin {
         transform: (value: string) => string,
         title = '全文转换',
         onApplied?: () => void,
+        options: {
+            handlesMarkdownContext?: boolean;
+            transformRange?: (source: string, from: number, to: number) => string;
+        } = {},
     ) {
         if (!this.获取编辑器信息()) return;
         const editor = 编辑模式;
@@ -1530,10 +1540,16 @@ class QuickEditingPlugin extends obsidian.Plugin {
             const fromOffset = editor.posToOffset(from);
             const toOffset = editor.posToOffset(to);
             before = source.slice(fromOffset, toOffset);
-            after = transformMarkdownRangeOutsideProtected(source, fromOffset, toOffset, transform);
+            after = options.transformRange
+                ? options.transformRange(source, fromOffset, toOffset)
+                : options.handlesMarkdownContext
+                    ? transform(before)
+                    : transformMarkdownRangeOutsideProtected(source, fromOffset, toOffset, transform);
             apply = () => editor.transaction({ replaceSelection: after });
         } else {
-            after = transformMarkdownOutsideProtected(source, transform);
+            after = options.handlesMarkdownContext
+                ? transform(source)
+                : transformMarkdownOutsideProtected(source, transform);
             const lastLine = editor.lastLine();
             const end = { line: lastLine, ch: editor.getLine(lastLine).length };
             apply = () => editor.transaction({
@@ -2909,6 +2925,18 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){return};
         所选文本 = 所选文本.replace(/\[([^\[\]]+)\]\([^\(\)]+\)/g,"$1");
         this.替换所选文本 (所选文本);
+    };
+
+    删除图片链接() {
+        this.应用文本转换(
+            removeImageLinks,
+            '删除图片链接',
+            undefined,
+            {
+                handlesMarkdownContext: true,
+                transformRange: removeImageLinksInRange,
+            },
+        );
     };
 
     转换引号() {

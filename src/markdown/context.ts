@@ -65,6 +65,39 @@ function collectProtectedNodes(node: PositionedNode, output: MarkdownRange[]): v
   for (const child of node.children ?? []) collectProtectedNodes(child, output);
 }
 
+function parseMarkdownTree(markdown: string): PositionedNode {
+  return fromMarkdown(markdown, {
+    extensions: [frontmatter(['yaml', 'toml']), math()],
+    mdastExtensions: [frontmatterFromMarkdown(['yaml', 'toml']), mathFromMarkdown()],
+  }) as PositionedNode;
+}
+
+function collectNodesByType(
+  node: PositionedNode,
+  nodeTypes: ReadonlySet<string>,
+  output: MarkdownRange[],
+): void {
+  const from = node.position?.start.offset;
+  const to = node.position?.end.offset;
+  if (
+    nodeTypes.has(node.type)
+    && typeof from === 'number'
+    && typeof to === 'number'
+  ) {
+    output.push({ from, to, type: node.type });
+  }
+  for (const child of node.children ?? []) collectNodesByType(child, nodeTypes, output);
+}
+
+export function markdownNodeRanges(
+  markdown: string,
+  nodeTypes: readonly string[],
+): MarkdownRange[] {
+  const ranges: MarkdownRange[] = [];
+  collectNodesByType(parseMarkdownTree(markdown), new Set(nodeTypes), ranges);
+  return mergeRanges(ranges);
+}
+
 function collectObsidianRanges(markdown: string): MarkdownRange[] {
   const ranges: MarkdownRange[] = [];
   for (const match of markdown.matchAll(/!?\[\[[^\]\n]+\]\]/g)) {
@@ -81,10 +114,7 @@ function collectObsidianRanges(markdown: string): MarkdownRange[] {
 }
 
 export function markdownProtectedRanges(markdown: string): MarkdownRange[] {
-  const tree = fromMarkdown(markdown, {
-    extensions: [frontmatter(['yaml', 'toml']), math()],
-    mdastExtensions: [frontmatterFromMarkdown(['yaml', 'toml']), mathFromMarkdown()],
-  }) as PositionedNode;
+  const tree = parseMarkdownTree(markdown);
   const ranges = collectObsidianRanges(markdown);
   collectProtectedNodes(tree, ranges);
   return mergeRanges(ranges);

@@ -37,6 +37,12 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 - 使用 `FileManager.generateMarkdownLink()` 生成与当前笔记匹配的相对链接。
 - 正确保留标题、块引用和显示别名，避免手工拼接 Wiki Link。
 
+### 一键删除图片链接
+
+- 删除当前选区或当前笔记中的 Markdown 图片、Obsidian 图片嵌入、引用式图片和 HTML `<img>` 标签。
+- 保留普通 Markdown 链接、普通 Wiki Link、引用定义和图片附件文件本身。
+- 使用完整 Markdown 上下文跳过 Frontmatter、代码和数学公式，并沿用全文预览与撤销提示。
+
 ### 模块化设置与命令管理
 
 - “智能符号”“格式刷”“智能粘贴”“全文清理”拆分为四个独立功能组，可逐组启用。
@@ -58,13 +64,13 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 | 智能符号 | 括号补全、语法跳过、代码块缩写、Callout 转换 | 开启 |
 | 格式刷 | 连续应用标题、粗体、斜体、删除线、高亮、文字与背景颜色 | 开启 |
 | 智能粘贴 | URL、路径、HTML、Office/网页表格和制表符表格 | 开启 |
-| 全文清理 | 标点、断行、空格、空行、注释和潜在链接整理 | 开启 |
+| 全文清理 | 标点、断行、空格、空行、注释、图片链接和潜在链接整理 | 开启 |
 
 关闭功能组后，该组命令不会注册到 Obsidian。更细粒度的控制可在“设置 → Quick Editing → 命令开关”中完成。
 
 ## 主要能力
 
-- 链接：内部链接、同名链接、标签/双链互转、潜在链接批量转换、内链与 Markdown 链接互转。
+- 链接：内部链接、同名链接、标签/双链互转、潜在链接批量转换、内链与 Markdown 链接互转，以及一键删除图片链接。
 - Markdown 格式：格式刷、多彩高亮、上下划线、上下标、三浪线代码块、扩展待办状态和填空语法。
 - 结构编辑：标题级别、段落选择与排序、空行增减、行首/行尾空格和中英文间距。
 - 文本整理：中英文标点、外来文本、错误语法、意外断行、注释、简繁转换和路径格式。
@@ -150,13 +156,14 @@ npm run check
 
 ## 许可证与来源
 
-本仓库的许可证范围不是简单的单一 MIT：
+本项目整体以 [MIT License](./LICENSE) 发布：
 
-- 官方旧版仓库 [Enhanced-Editing-legacy-version](https://github.com/obsidian-canzi/Enhanced-Editing-legacy-version) 的 0.4.4 代码以 MIT License 发布，本仓库保留其版权与许可声明。
-- Hanser0521 在 2026 年新增的现代化模块、测试和工程配置以 MIT License 发布。
-- 上游后续仓库 0.5–0.6 阶段没有附带明确 License；这些历史代码的权利不由本仓库重新授权。
+- 官方旧版仓库 [Enhanced-Editing-legacy-version](https://github.com/obsidian-canzi/Enhanced-Editing-legacy-version) 的 0.4.4 代码原以 MIT License 发布，本仓库保留原版权声明。
+- 2026 年 8 月 5 日，维护者取得了 [obsidian-canzi](https://github.com/obsidian-canzi) 对后期历史实现继续维护并以 MIT License 发布的书面授权；邮件原件由维护者私下留存，不随仓库公开。
+- Hanser0521 在 2026 年新增的现代化模块、测试、工程配置和文档同样以 MIT License 发布。
+- 所有历史作者和贡献者的署名均予保留，第三方依赖继续适用各自的许可证。
 
-完整范围和限制见 [LICENSE](./LICENSE)。在获得相关权利人的书面确认或替换相应历史实现前，本项目不提交 Obsidian 社区插件目录，也不宣称整个代码库已经完成单一开源许可证清理。
+来源、贡献者署名与书面授权记录见 [NOTICE](./NOTICE)。版本更新记录见 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 致谢
 

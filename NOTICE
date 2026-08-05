@@ -1,0 +1,23 @@
+Quick Editing - source and authorization notice
+
+Quick Editing is a continuation of the Obsidian plugin formerly published as
+Enhanced Editing / ZH Enhanced Editing.
+
+Sources and attribution
+
+- Enhanced-Editing-legacy-version, through version 0.4.4, was published under
+  the MIT License with the copyright notice "Copyright (c) 2021 Mouth on
+  Cloud". That notice is preserved in LICENSE.
+- Historical changes from the later obsidian-canzi/Enhanced-editing repository
+  are attributed to obsidian-canzi and its contributors, including cumany.
+- Original modernization work added in 2026 is attributed to Hanser0521.
+
+Written authorization
+
+On 2026-08-05, Hanser0521 received written authorization from obsidian-canzi
+to continue and publish the later historical implementation under the MIT
+License. The private correspondence is retained by the maintainer and is not
+included in this public repository.
+
+Third-party dependencies and incorporated components retain their own
+copyright notices and licenses.
