@@ -63,68 +63,7 @@ Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件�
 
 Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-canzi/Enhanced-editing](https://github.com/obsidian-canzi/Enhanced-editing) 继续维护。项目已更名并使用新的插件 ID，不会覆盖旧版“增强编辑”的安装目录。
 
-## 1.0.2 社区审核修复
-
-- 移除更新提示中的 `innerHTML`，全部改用安全 DOM API 创建文本和链接。
-- 按社区清单修正插件描述结尾和作者主页链接。
-- 增加英文功能、安装、使用、隐私及权限说明。
-- GitHub Release 只发布 `main.js`、`manifest.json`、`styles.css`，不再附带额外 ZIP。
-- 移除废弃的滑块提示 API，并简化自动审核指出的空条件分支。
-
-## 1.0.1 社区发布准备
-
-- 按当前 Obsidian 社区插件规范移除全部插件默认快捷键；所有命令仍可在“设置 → 快捷键”中自由绑定。
-- 清理生产调试输出，并移除设置页硬编码的标题标签。
-- `main.js` 仅由 GitHub Actions 构建并附加到 Release，不再作为源码提交。
-- GitHub Actions 会为发布资产生成可验证的构建来源证明。
-- 发布检查新增“禁止默认快捷键”断言，防止后续版本重新引入。
-
-## 1.0.0 更新概要
-
-### 更安全的 Markdown 转换
-
-- 使用 Markdown 语法树识别转换上下文。
-- 全文与选区转换会保护 Frontmatter、围栏代码块、缩进代码块、行内代码、数学公式、HTML、链接、图片和 Obsidian 注释。
-- 纯文本转换保留 LF/CRLF 行尾风格，并覆盖中英文标点、嵌套格式、代码块与表格等测试场景。
-
-### 可预览、可撤销的全文操作
-
-- 全文操作执行前显示预计修改处数、影响行数和前后片段。
-- 确认后以单个编辑事务应用修改。
-- 完成提示提供“撤销”按钮，降低批量清理的误操作风险。
-
-### 现代化智能粘贴
-
-- 监听 Obsidian 的 `editor-paste` / `ClipboardEvent`，同时读取 `text/html` 与 `text/plain`。
-- Office 和网页表格通过 HTML DOM 解析为 Markdown 表格，不再依赖 Office 专用正则链。
-- 自动识别 URL、Windows 本地/UNC 路径、制表符表格和富文本。
-- `Mod+Alt+V` 仍作为无法取得剪贴板事件时的手动后备命令。
-
-### 更可靠的内部链接
-
-- 通过 `MetadataCache` 匹配文件路径、文件名、别名和 Frontmatter 标题。
-- 使用 `FileManager.generateMarkdownLink()` 生成与当前笔记匹配的相对链接。
-- 正确保留标题、块引用和显示别名，避免手工拼接 Wiki Link。
-
-### 一键删除图片链接
-
-- 删除当前选区或当前笔记中的 Markdown 图片、Obsidian 图片嵌入、引用式图片和 HTML `<img>` 标签。
-- 保留普通 Markdown 链接、普通 Wiki Link、引用定义和图片附件文件本身。
-- 使用完整 Markdown 上下文跳过 Frontmatter、代码和数学公式，并沿用全文预览与撤销提示。
-
-### 模块化设置与命令管理
-
-- “智能符号”“格式刷”“智能粘贴”“全文清理”拆分为四个独立功能组，可逐组启用。
-- 设置页支持按名称、命令 ID、功能组和关键词搜索。
-- 每条命令均可单独启用或关闭，开关在插件重载后生效。
-- 不再注册 Obsidian 核心已经实现得更完整的标题、基础格式、Callout、列表、代码块、视图切换、路径复制和段落删除命令。
-
-### 新版 Obsidian 兼容性
-
-- 编辑器获取使用 `workspace.activeEditor`，不再假设 `activeLeaf` 一定位于主窗口。
-- 为主窗口和弹出窗口分别注册格式刷事件，支持多窗口工作流。
-- 移除动态代码执行和已废弃/私有 API 的直接使用。
-- 恢复 TypeScript 源码、严格类型检查、单元测试、生产构建和 bundle smoke test。
+版本更新记录统一收录在 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 功能组
 
