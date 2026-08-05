@@ -89,17 +89,6 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 
 其他命令默认不占用快捷键，可在 Obsidian 的“快捷键”设置中自行分配。
 
-## 与 Easy Typing 同时使用
-
-两个插件可以同时启用，但默认存在一个确定的快捷键重复：
-
-- Easy Typing“格式化选中部分/当前行”：`Mod+Shift+L`
-- Quick Editing“批量插入空行”：`Mod+Shift+L`
-
-请在 Obsidian 快捷键设置中修改其中一个。推荐将 Easy Typing 的命令改为 `Mod+Alt+Shift+L`。
-
-两者都可能参与粘贴处理。Quick Editing 只在识别到 URL、路径、表格或 HTML 时接管事件；若特定剪贴板来源出现二次格式化，可关闭 Quick Editing 的“粘贴时自动识别”，或关闭 Easy Typing 的自动格式化粘贴。双方的增强回车功能不建议同时开启。
-
 ## 安装
 
 ### GitHub Release
