@@ -42,7 +42,7 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 - “智能符号”“格式刷”“智能粘贴”“全文清理”拆分为四个独立功能组，可逐组启用。
 - 设置页支持按名称、命令 ID、功能组和关键词搜索。
 - 每条命令均可单独启用或关闭，开关在插件重载后生效。
-- Obsidian 核心已经实现得更完整的光标移动、标题、粗体、斜体、删除线和行内代码等命令默认关闭，仍可按需恢复。
+- 不再注册 Obsidian 核心已经实现得更完整的标题、基础格式、Callout、列表、代码块、视图切换、路径复制和段落删除命令。
 
 ### 新版 Obsidian 兼容性
 
@@ -56,7 +56,7 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 | 功能组 | 主要用途 | 默认状态 |
 | --- | --- | --- |
 | 智能符号 | 括号补全、语法跳过、代码块缩写、Callout 转换 | 开启 |
-| 格式刷 | 标题、粗体、斜体、删除线、高亮、文字与背景颜色 | 开启 |
+| 格式刷 | 连续应用标题、粗体、斜体、删除线、高亮、文字与背景颜色 | 开启 |
 | 智能粘贴 | URL、路径、HTML、Office/网页表格和制表符表格 | 开启 |
 | 全文清理 | 标点、断行、空格、空行、注释和潜在链接整理 | 开启 |
 
@@ -65,10 +65,10 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 ## 主要能力
 
 - 链接：内部链接、同名链接、标签/双链互转、潜在链接批量转换、内链与 Markdown 链接互转。
-- Markdown 格式：高亮、粗体、斜体、删除线、上下划线、上下标、代码块、Callout、待办状态和填空语法。
+- Markdown 格式：格式刷、多彩高亮、上下划线、上下标、三浪线代码块、扩展待办状态和填空语法。
 - 结构编辑：标题级别、段落选择与排序、空行增减、行首/行尾空格和中英文间距。
 - 文本整理：中英文标点、外来文本、错误语法、意外断行、注释、简繁转换和路径格式。
-- 辅助操作：计算选区、提取标注、获取相对路径、修改文件名、搜索选区和列表转图示。
+- 辅助操作：计算选区、提取标注、修改文件名、搜索选区和列表转图示。
 
 ## 常用默认快捷键
 
@@ -79,7 +79,7 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 | 添加/移除内部链接 | `Alt+Z` |
 | 转换为同名链接 | `Alt+Q` |
 | 智能符号 | `Alt+;` |
-| 高亮 | `Alt+G` |
+| 高亮格式刷 | `Alt+Shift+G` |
 | 智能粘贴后备命令 | `Mod+Alt+V` |
 | 转换无语法文本 | `Mod+Alt+Z` |
 | 获取无语法文本 | `Mod+Alt+C` |
@@ -88,6 +88,22 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 | 计算选区 | `F9` |
 
 其他命令默认不占用快捷键，可在 Obsidian 的“快捷键”设置中自行分配。
+
+## 交由 Obsidian 核心处理的操作
+
+Quick Editing 不再维护下列重复实现。请直接在 Obsidian“设置 → 快捷键”中搜索对应核心命令：
+
+| 操作 | Obsidian 核心命令 |
+| --- | --- |
+| 阅读/源码/实时预览切换 | `markdown:toggle-preview`、`editor:toggle-source` |
+| H1–H6 与普通段落 | `editor:set-heading-0` 至 `editor:set-heading-6` |
+| 粗体、斜体、删除线、高亮 | `editor:toggle-bold`、`editor:toggle-italics`、`editor:toggle-strikethrough`、`editor:toggle-highlight` |
+| Callout 与代码块 | `editor:insert-callout`、`editor:insert-codeblock` |
+| 有序/无序列表 | `editor:toggle-numbered-list`、`editor:toggle-bullet-list` |
+| 插入标签 | `editor:insert-tag` |
+| 删除段落 | `editor:delete-paragraph` |
+| 复制库内路径 | `workspace:copy-path` |
+| 光标移动 | 编辑器及操作系统原生快捷键 |
 
 ## 安装
 

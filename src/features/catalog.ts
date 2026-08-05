@@ -14,7 +14,6 @@ export interface CommandCatalogEntry {
   name: string;
   group?: FeatureGroupKey;
   keywords: string[];
-  defaultEnabled: boolean;
 }
 
 export const FEATURE_GROUPS: readonly FeatureGroupDefinition[] = [
@@ -68,38 +67,12 @@ const FULL_DOCUMENT_COMMANDS = new Set([
 const SMART_PASTE_COMMANDS = new Set(['paste-text', 'paste-picText']);
 const SMART_SYMBOL_COMMANDS = new Set(['auto-text', 'auto-texts']);
 
-export const REDUNDANT_CORE_COMMANDS = new Set([
-  'mouse-up',
-  'mouse-down',
-  'mouse-left',
-  'mouse-right',
-  'mouse-start',
-  'mouse-end',
-  'note-start',
-  'note-end',
-  'biaoti0-text',
-  'biaoti1-text',
-  'biaoti2-text',
-  'biaoti3-text',
-  'biaoti4-text',
-  'biaoti5-text',
-  'biaoti6-text',
-  'cuti-text',
-  'xieti-text',
-  'shanchu-text',
-  'add-daima',
-]);
-
 export function featureGroupForCommand(commandId: string): FeatureGroupKey | undefined {
   if (SMART_SYMBOL_COMMANDS.has(commandId)) return 'smartSymbols';
   if (SMART_PASTE_COMMANDS.has(commandId)) return 'smartPaste';
   if (FULL_DOCUMENT_COMMANDS.has(commandId)) return 'fullDocumentCleanup';
   if (commandId.endsWith('-format') || commandId === 'quit-format') return 'formatBrush';
   return undefined;
-}
-
-export function commandDefaultEnabled(commandId: string): boolean {
-  return !REDUNDANT_CORE_COMMANDS.has(commandId);
 }
 
 export function commandCatalogEntry(command: Command): CommandCatalogEntry {
@@ -115,6 +88,5 @@ export function commandCatalogEntry(command: Command): CommandCatalogEntry {
       ...(groupDefinition?.keywords ?? []),
       groupDefinition?.name ?? '',
     ].filter(Boolean),
-    defaultEnabled: commandDefaultEnabled(command.id),
   };
 }

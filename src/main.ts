@@ -31,10 +31,9 @@ import {
 } from './transformations/cleanup';
 import { linkPotentialTitles } from './transformations/potential-links';
 import { findAdjacentMatch } from './editor/find-adjacent-match';
-import { nextMarkdownMode } from './editor/markdown-mode';
 import { summarizeTransformation } from './transformations/preview';
 import { TransformationPreviewModal } from './ui/transformation-preview-modal';
-import { renderModernSettings } from './ui/modern-settings';
+import { createSettingsSection, renderModernSettings } from './ui/modern-settings';
 
 /* *****************************************************************************
 使用声明
@@ -44,7 +43,7 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 
 
 const 当前版本 = '1.0.0';
-const 功能更新 = 'Quick Editing 1.0.0\n- 使用 Markdown 语法树保护代码、Frontmatter、公式和链接\n- 全文转换增加预计修改数量、前后预览和一键撤销\n- 智能粘贴改用 ClipboardEvent，HTML 表格通过 DOM 解析\n- 内链结合 MetadataCache 与 FileManager 生成相对链接\n- 新增四个独立功能组、命令搜索和逐命令开关\n- 支持 Obsidian 多窗口与弹出窗口\n- 默认停用 Obsidian 核心已有的重复命令\n- 建立完整 TypeScript、单元测试、构建与发布检查';
+const 功能更新 = 'Quick Editing 1.0.0\n- 使用 Markdown 语法树保护代码、Frontmatter、公式和链接\n- 全文转换增加预计修改数量、前后预览和一键撤销\n- 智能粘贴改用 ClipboardEvent，HTML 表格通过 DOM 解析\n- 内链结合 MetadataCache 与 FileManager 生成相对链接\n- 新增四个独立功能组、命令搜索和逐命令开关\n- 支持 Obsidian 多窗口与弹出窗口\n- 移除 27 条 Obsidian 核心已有的重复命令\n- 建立完整 TypeScript、单元测试、构建与发布检查';
 const 宣传页面 = '查看 <a href="https://github.com/Hanser0521/quick-editing/releases">Quick Editing GitHub 页面</a>';
 const 上标图标 ='<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor"d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41M21.85 9h-4.88V8l.89-.82c.76-.64 1.32-1.18 1.7-1.63c.37-.44.56-.85.57-1.23a.884.884 0 0 0-.27-.7c-.18-.19-.47-.28-.86-.29c-.31.01-.58.07-.84.17l-.66.39l-.45-1.17c.27-.22.59-.39.98-.53S18.85 2 19.32 2c.78 0 1.38.2 1.78.61c.4.39.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.48-.76.93-1.27 1.36l-.64.52v.02h2.58V9z"/></svg>';
 const 下标图标 = '<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor" d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41m5.85 13.62h-4.88v-1l.89-.8c.76-.65 1.32-1.19 1.7-1.63c.37-.44.56-.85.57-1.24a.898.898 0 0 0-.27-.7c-.18-.16-.47-.28-.86-.28c-.31 0-.58.06-.84.18l-.66.38l-.45-1.17c.27-.21.59-.39.98-.53s.82-.24 1.29-.24c.78.04 1.38.25 1.78.66c.4.41.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.47-.76.92-1.27 1.36l-.64.52v.02h2.58v1.35z"/></svg>';
@@ -121,9 +120,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
     }
 
     isCommandEnabled(commandId: string): boolean {
-        const entry = this.registeredCommandCatalog.find((candidate) => candidate.id === commandId);
         const override = this.settings.commandEnabled[commandId];
-        return override ?? entry?.defaultEnabled ?? true;
+        return override ?? true;
     }
 
     private addQuickCommand(command: obsidian.Command): void {
@@ -227,23 +225,12 @@ class QuickEditingPlugin extends obsidian.Plugin {
         this.footnoteStatusBar = this.addStatusBarItem();
         this.footnoteStatusBar.setText("");
         this.addQuickCommand({
-            id: 'set-mode',
-            name: '切换模式',
-            callback: () => this.切换模式()
-        });
-        this.addQuickCommand({
             id: 'internal-link',
             name: '[[链接]]语法',
             callback: () => this.转换内部链接(),
             hotkeys: [{ modifiers: ["Alt"], key: "Z" } ]
         });
         //console.log('加载了'+this.settings.maxTry);
-        this.addQuickCommand({
-            id: 'tag-text',
-            name: '#标签 语法',
-            callback: () => this.转换标签(),
-            hotkeys: [{ modifiers: ["Alt","Shift"], key: "3" } ]
-        });
         this.addQuickCommand({
             id: 'tag-link-text',
             name: '标签双链互转',
@@ -306,95 +293,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
         /**/
 
         this.addQuickCommand({
-            id: 'mouse-up',
-            name: '游标上移',
-            callback: () => this.游标上移(),
-            hotkeys: [{ modifiers: ["Alt"], key: "I" } ]
-        });
-        this.addQuickCommand({
-            id: 'mouse-down',
-            name: '游标下移',
-            callback: () => this.游标下移(),
-            hotkeys: [{ modifiers: ["Alt"], key: "K" } ]
-        });
-        this.addQuickCommand({
-            id: 'mouse-left',
-            name: '游标左移',
-            callback: () => this.游标左移(),
-            hotkeys: [{ modifiers: ["Alt"], key: "J" } ]
-        });
-        this.addQuickCommand({
-            id: 'mouse-right',
-            name: '游标右移',
-            callback: () => this.游标右移(),
-            hotkeys: [{ modifiers: ["Alt"], key: "L" } ]
-        });
-        this.addQuickCommand({
-            id: 'mouse-start',
-            name: '游标移至行首',
-            callback: () => this.游标移至行首(),
-            hotkeys: [{ modifiers: ["Alt"], key: "U" } ]
-        });
-        this.addQuickCommand({
-            id: 'mouse-end',
-            name: '游标移至行尾',
-            callback: () => this.游标移至行尾(),
-            hotkeys: [{ modifiers: ["Alt"], key: "O" } ]
-        });
-        this.addQuickCommand({
-            id: 'note-start',
-            name: '游标移至文首',
-            callback: () => this.游标移至文首()
-        });
-        this.addQuickCommand({
-            id: 'note-end',
-            name: '游标移至文末',
-            callback: () => this.游标移至文末()
-        });
-
-        this.addQuickCommand({
-            id: 'biaoti0-text',
-            name: '取消标题',
-            callback: () => this.标题语法(""),
-            hotkeys: [{ modifiers: ["Mod"], key: "`" } ]
-        });
-        this.addQuickCommand({
-            id: 'biaoti1-text',
-            name: 'H1标题',
-            callback: () => this.标题语法("#")
-            //hotkeys: [{ modifiers: ["Mod"], key: "1" } ]
-        });
-        this.addQuickCommand({
-            id: 'biaoti2-text',
-            name: 'H2标题',
-            callback: () => this.标题语法("##")
-            //hotkeys: [{ modifiers: ["Mod"], key: "2" } ]
-        });
-        this.addQuickCommand({
-            id: 'biaoti3-text',
-            name: 'H3标题',
-            callback: () => this.标题语法("###")
-            //hotkeys: [{ modifiers: ["Mod"], key: "3" } ]
-        });
-        this.addQuickCommand({
-            id: 'biaoti4-text',
-            name: 'H4标题',
-            callback: () => this.标题语法("####")
-            //hotkeys: [{ modifiers: ["Mod"], key: "4" } ]
-        });
-        this.addQuickCommand({
-            id: 'biaoti5-text',
-            name: 'H5标题',
-            callback: () => this.标题语法("#####")
-            //hotkeys: [{ modifiers: ["Mod"], key: "5" } ]
-        });
-        this.addQuickCommand({
-            id: 'biaoti6-text',
-            name: 'H6标题',
-            callback: () => this.标题语法("######")
-            //hotkeys: [{ modifiers: ["Mod"], key: "6" } ]
-        });
-        this.addQuickCommand({
             id: 'zeng-btexts',
             name: '调高标题级别',
             callback: () => this.调节标题级别(true)
@@ -432,23 +330,10 @@ class QuickEditingPlugin extends obsidian.Plugin {
             hotkeys: [{ modifiers: ["Alt","Shift"], key: "C" } ]
         });
         this.addQuickCommand({
-            id: 'cuti-text',
-            name: '**粗体**',
-            callback: () => this.转换粗体(),
-            hotkeys: [{ modifiers: ["Alt"], key: "C" } ]
-        });
-
-        this.addQuickCommand({
             id: 'gaoliang-format',
             name: '==高亮==格式刷',
             callback: () => this.高亮格式刷(),
             hotkeys: [{ modifiers: ["Alt","Shift"], key: "G" } ]
-        });
-        this.addQuickCommand({
-            id: 'gaoliang-text',
-            name: '==高亮==',
-            callback: () => this.转换高亮(),
-            hotkeys: [{ modifiers: ["Alt"], key: "G" } ]
         });
 		this.addQuickCommand({
             id: 'gaoliang1-text',
@@ -488,26 +373,11 @@ class QuickEditingPlugin extends obsidian.Plugin {
             hotkeys: [{ modifiers: ["Alt","Shift"], key: "X" } ]
         });
         this.addQuickCommand({
-            id: 'xieti-text',
-            name: '*斜体*',
-            callback: () => this.转换斜体(),
-            hotkeys: [{ modifiers: ["Alt"], key: "X" } ]
-        });
-
-
-        this.addQuickCommand({
             id: 'shanchu-format',
             name: '~~删除线~~格式刷',
             callback: () => this.删除线格式刷(),
             hotkeys: [{ modifiers: ["Alt","Shift"], key: "S" } ]
         });
-        this.addQuickCommand({
-            id: 'shanchu-text',
-            name: '~~删除线~~',
-            callback: () => this.转换删除线(),
-            hotkeys: [{ modifiers: ["Alt"], key: "S" } ]
-        });
-
         this.addQuickCommand({
             id: 'xiahua-format',
             name: '_下划线_格式刷',
@@ -521,30 +391,11 @@ class QuickEditingPlugin extends obsidian.Plugin {
             hotkeys: [{ modifiers: ["Alt"], key: "H" } ]
         });
 
-        /* Obsidian自带此功能
-        this.addQuickCommand({
-            id: 'zhuozhong-text',
-            name: '`行内代码`',
-            callback: () => this.转换行内代码()
-        });
-        */
-        this.addQuickCommand({
-            id: 'add-daima',
-            name: '```代码块```',
-            callback: () => this.转换代码块(),
-            hotkeys: [{ modifiers: ["Alt"], key: "D" } ]
-        });
         this.addQuickCommand({
             id: 'add-langxian',
             name: '~~~三浪线~~~',
             callback: () => this.转换三浪线()
         });
-        this.addQuickCommand({
-            id: 'add-callout',
-            name: '转换callout语法 ',
-            callback: () => this.转换callout语法()
-        });
-
         this.addQuickCommand({
             id: 'internal-hyper',
             name: '[[]]转为[]()',
@@ -704,17 +555,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             callback: () => this.标记完成及时间()
         });
         this.addQuickCommand({
-            id: 'y2w-list',
-            name: '有序列表转无序列表',
-            callback: () => this.有转无序列表()
-        });
-        this.addQuickCommand({
-            id: 'w2y-list',
-            name: '无序列表转有序列表',
-            callback: () => this.无转有序列表()
-        });
-
-        this.addQuickCommand({
             id: 'add-tiankong',
             name: '填空{{c*::选文}}',
             callback: () => this.转换填空()
@@ -815,11 +655,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             callback: () => this.搜索当前文本()
         });
         this.addQuickCommand({
-            id: 'delete-list',
-            name: '删除当前段落',
-            callback: () => this.删除当前段落()
-        });
-        this.addQuickCommand({
             id: 'old-Cursor',
             name: '上次光标',
             callback: () => this.上次光标()
@@ -859,11 +694,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             id: 'tiqu-text',
             name: '获取标注文本',
             callback: () => this.获取标注文本()
-        });
-        this.addQuickCommand({
-            id: 'copy-filePath',
-            name: '获取相对路径',
-            callback: () => this.获取相对路径()
         });
         this.addQuickCommand({
             id: 'modify-fileName',
@@ -1969,49 +1799,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
         isbt2Txt = false;
     };
 
-    游标上移() {
-        if (!this.获取编辑器信息()) return;
-        编辑模式.exec("goUp");
-    };
-    游标下移() {
-        if (!this.获取编辑器信息()) return;
-        编辑模式.exec("goDown");
-    };
-    游标左移() {
-        if (!this.获取编辑器信息()) return;
-        if(/(==|\*\*|~~|%%|\[\[|\]\])$/.test(选至行首)){
-            编辑模式.exec("goLeft");
-            编辑模式.exec("goLeft");
-        }else{
-            编辑模式.exec("goLeft");
-        };
-    };
-    游标右移() {
-        if (!this.获取编辑器信息()) return;
-        if(/^(==|\*\*|~~|%%|\[\[|\]\])/.test(选至行尾)){
-            编辑模式.exec("goRight");
-            编辑模式.exec("goRight");
-        }else{
-            编辑模式.exec("goRight");
-        };
-    };
-    游标移至行首() {
-        if (!this.获取编辑器信息()) return;
-        编辑模式.setCursor({line:当前行号,ch:0});
-    };
-    游标移至行尾() {
-        if (!this.获取编辑器信息()) return;
-        编辑模式.setCursor({line:当前行号,ch:当前行文本.length});
-    };
-    游标移至文首() {
-        if (!this.获取编辑器信息()) return;
-        编辑模式.exec("goStart");
-    };
-    游标移至文末() {
-        if (!this.获取编辑器信息()) return;
-        编辑模式.exec("goEnd");
-    };
-
     切换文件列表(_num: number) {
         if (!this.获取编辑器信息()) return;
         当前文件 = this.app.workspace.getActiveFile();
@@ -2040,21 +1827,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if (xinFile) void this.app.workspace.getLeaf(false).openFile(xinFile);
     };
 
-    转换标签() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){
-            return;
-        };
-
-        let tagReg = /(^|\s*)#([^#\s\/]+)(\s|[^\/]|\r*\n|$)/g;
-        if (tagReg.test(所选文本)) {
-            所选文本 = 所选文本.replace(tagReg, "$2");
-		}else{
-			所选文本 = " #" + 所选文本 + " ";
-		}
-        this.替换所选文本 (所选文本);
-    };
-
     标签双链互转() {
         if (!this.获取编辑器信息()) return;
         if(所选文本 == ""){
@@ -2070,22 +1842,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
 		}
         this.替换所选文本 (所选文本);
     };
-
-    切换模式() {
-        const noticeDuration = 10000;
-        const markdownView = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        if (!markdownView) {
-          new obsidian.Notice("没有常规的笔记或没有打开的文件。");
-          return;
-        }
-        const currentView = markdownView.leaf.getViewState();
-        const nextMode = nextMarkdownMode(currentView.state);
-        new obsidian.Notice(nextMode.notice, noticeDuration);
-        void markdownView.leaf.setViewState({
-            ...currentView,
-            state: nextMode.state,
-        });
-      }
 
     转换内部链接() {
         if (!this.获取编辑器信息()) return;
@@ -2678,59 +2434,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
     };
 
 
-    转换行内代码() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){
-            笔记全文.replaceRange("``", 当前光标, 当前光标);
-            编辑模式.exec("goRight");
-        }else{
-            var link = /`[^`]*`/;	//是否包含代码行符号
-            var link1 = /^[^`]*`[^`]*$/;	//是否只包含一侧的`
-
-            if (link1.test(所选文本)){
-                //new obsidian.Notice("只有一侧出现`符号");
-                return;
-            }else if (link.test(所选文本)){
-                //new obsidian.Notice("成对出现`符号");
-                所选文本 = 所选文本.replace(/`/g,"");
-                this.替换所选文本 (所选文本);
-            }else{
-                //new obsidian.Notice("需要补充`符号");
-                所选文本 = 所选文本.replace(/^(.*)$/mg,"`$1`");
-                this.替换所选文本 (所选文本);
-                编辑模式.exec("goRight");
-            }
-        };
-    };
-
-    转换代码块() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){
-            笔记全文.replaceRange("```\n\n```", 当前光标, 当前光标);
-            编辑模式.exec("goDown");
-        }else{
-            var link = /```[^`]+```/;	//是否包含代码行符号
-            var link1 = /^[^`]*```[^`]*$/m;	//是否只包含一侧的`
-            所选文本 = 所选文本.replace(/\n/g,"↫");
-            if (link1.test(所选文本)){
-                //new obsidian.Notice("只有一侧出现```符号");
-                return;
-            }else if (link.test(所选文本)){
-                //new obsidian.Notice("成对出现```符号");
-                所选文本 = 所选文本.replace(/↫*```↫?|↫?```↫*/g,"");
-                所选文本 = 所选文本.replace(/↫/g,"\n");
-                this.替换所选文本 (所选文本);
-            }else{
-                //new obsidian.Notice("需要补充```符号");
-                所选文本 = 所选文本.replace(/^(.*)$/m,"↫```↫$1↫```↫");
-                所选文本 = 所选文本.replace(/↫/g,"\n");
-                this.替换所选文本 (所选文本);
-                编辑模式.exec("goLeft");
-                编辑模式.exec("goUp");
-            }
-        };
-    };
-
     转换三浪线() {
         if (!this.获取编辑器信息()) return;
         var link = /~~~[^~]+~~~/;	//是否包含代码行符号
@@ -3291,60 +2994,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
     };
     */
 
-    删除当前段落() {
-        //优化Ob自带功能，支持删除光标所在链接文本，修正有序列表的序号
-        if (!this.获取编辑器信息()) return;
-        let reg = /^[\t\s]*\d+(?=\.\s[^\s])/mg;
-        if(当前行文本.match(reg)==null){
-            console.log("当前不是列表");
-            let reg1 =/^(.*\[\[)[^\[]+$/;
-            let reg2 = /^[^\]]+(\]\].*)$/;
-
-            //当前光标在[[]]中间，只删除链接文字
-            if(reg1.test(选至行首) && reg2.test(选至行尾)){
-                new obsidian.Notice("优先删除内部链接，可以切换标题！");
-                选至行首 = 选至行首.replace(reg1,"$1");
-                选至行尾 = 选至行尾.replace(reg2,"$1");
-                //笔记全文.replaceRange(选至行首+选至行尾, {line:当前行号,ch:0},{line:当前行号,ch:当前行文本.length});
-                编辑模式.setLine(当前行号,选至行首+选至行尾);
-                编辑模式.setCursor({line:当前行号,ch:选至行首.length});
-            }else{
-                //当前所在行为普通文本，直接删除
-                笔记全文.replaceRange("", {line:当前行号,ch:0},{line:Number(当前行号+1),ch:0});
-            }
-        }else{
-            //当前所在行为有序列表的一项，则调小后表部分的序号
-            选至文末 = 选至文末.replace(/\n/g,"↫");
-            const 后表匹配 = 选至文末.match(/^([\t\s]*\d+\.\s[^↫]*↫)+/);
-            const 缩进匹配 = 当前行文本.match(/^[\t\s]*(?=\d)/);
-            if (!后表匹配 || !缩进匹配) return;
-            let 后表部分 = 后表匹配[0].replace(/↫/g,"\n"); //替换为单行文本，再截取后表部分
-            let 后表行数 = 后表部分.match(/\n/g)?.length ?? 0;    //计算换行次数
-            let 缩进字符 = 缩进匹配[0];
-            let reg3 = new RegExp("^("+escapeRegExp(缩进字符)+")(\\d+)(?=\\.*\\s)", "mg");
-            后表部分 = 后表部分.replace(reg3, function(_match, indent, number){
-                return indent + (Number(number)-1);
-            });
-            后表部分 = 后表部分.replace(/^[^\n]*\n/,"");
-            //new obsidian.Notice("选至文末\n"+选至文末);
-            笔记全文.replaceRange(后表部分, {line:当前行号,ch:0},{line:当前行号+后表行数,ch:编辑模式.getLine(当前行号+后表行数).length});
-        };
-    };
-
-    有转无序列表() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){return};
-        所选文本 = 所选文本.replace(/(?<=^\s*)[0-9]+\.\s/mg,"- ");
-        this.替换所选文本 (所选文本);
-    };
-
-    无转有序列表() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){return};
-        所选文本 = 所选文本.replace(/(?<=^\s*)[\-\+]\s/mg,"1. ");
-        this.替换所选文本 (所选文本);
-    };
-
     转换待办列表() {
         if (!this.获取编辑器信息()) return;
         let 当前新文本 = 当前行文本.replace(/(?<=^\s*([\-\+]|[0-9]+\.)\s\[) (?=\]\s[^\s])/mg,"x☀");
@@ -3358,23 +3007,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
         当前新文本 = 当前新文本.replace(/(?<=^\s*([\-\+]|[0-9]+\.)\s\[[\sx\-\+\?\!\<\>])☀(?=\]\s[^\s])/mg,"");
         //笔记全文.replaceRange(当前新文本, {line:当前行号,ch:0},{line:当前行号,ch:当前行文本.length});
         编辑模式.setLine(当前行号,当前新文本);
-    };
-
-    转换callout语法(){
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){return};
-        所选文本 = 所选文本.replace(/\n/g,"↫");
-        if(所选文本.includes(">[!")){
-            //new obsidian.Notice("需要去除>符号");
-            所选文本 = 所选文本.replace(/↫?>\[![^↫]+(?=↫)/m,"");
-            所选文本 = 所选文本.replace(/↫\>/g,"\n");
-        }else{
-            //new obsidian.Notice("需要补充>符号");
-            所选文本 = 所选文本.replace(/^(.*)$/m,">[!note]↫$1");
-            所选文本 = 所选文本.replace(/↫/g,"\n>");
-        }
-        this.替换所选文本 (所选文本);
-        编辑模式.exec("goRight");
     };
 
     合计任务用时() {
@@ -3467,15 +3099,6 @@ class QuickEditingPlugin extends obsidian.Plugin {
             console.error("Quick Editing：重命名文件失败", error);
             new obsidian.Notice("重命名失败，请查看开发者控制台");
         }
-    };
-
-    获取相对路径 () {
-        当前文件 = this.app.workspace.getActiveFile();
-        if (!当前文件) return;
-        当前文件路径 = 当前文件.path;
-        //navigator.clipboard.writeText(当前文件路径)
-        let 相对目录 = 当前文件路径.replace(/(?<=\/)[^\/]+$/m,"");
-        new obsidian.Notice("当前笔记位于："+相对目录);
     };
 
     async 智能粘贴() {
@@ -4214,481 +3837,104 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
         this.plugin = plugin;
     }
 
-    display() {
-        var plugin = this.plugin;
-        var containerEl = this.containerEl;
+    display(): void {
+        const { containerEl, plugin } = this;
         containerEl.empty();
-        containerEl.createEl('h2', { text: "Quick Editing V"+当前版本 });
+        containerEl.addClass('quick-editing-settings');
+
+        const hero = containerEl.createDiv({ cls: 'quick-editing-settings-hero' });
+        const heroIcon = hero.createDiv({ cls: 'quick-editing-settings-hero-icon' });
+        obsidian.setIcon(heroIcon, 'sparkles');
+        const heroCopy = hero.createDiv({ cls: 'quick-editing-settings-hero-copy' });
+        const titleRow = heroCopy.createDiv({ cls: 'quick-editing-settings-title-row' });
+        titleRow.createEl('h2', { text: 'Quick Editing' });
+        titleRow.createSpan({
+            cls: 'quick-editing-settings-version',
+            text: `V${当前版本}`,
+        });
+        heroCopy.createEl('p', {
+            text: '专注于 Obsidian 核心之外的安全 Markdown 转换、智能粘贴与批量编辑。',
+        });
+
         renderModernSettings(containerEl, plugin);
-        new obsidian.Setting(containerEl)
-            .setName("📣 转换内部链接「Alt+Z」：在选文两端添加或去除 [[ ]] 符号")
-            .setDesc("支持转换多行文本（需用换行符分隔）或多句文本（需用顿号分隔）。")
 
-        new obsidian.Setting(containerEl)
-            .setName("📣 转换潜在链接「待设置」：判断当前笔记的正文部分，将符合的文本转为内部链接")
-            .setDesc("此功能会保护 YAML、代码块、现有链接、标签、网址和注释，只转换普通正文。感谢 平果（184537266）提供建议。")
-        new obsidian.Setting(containerEl)
-            .setName("- 特定标题列表")
-            .setDesc("优先处理匹配右侧列表的文本，如右表为空，才按库标题名称进行判断并转换。建议提取全库笔记标题进行整理并放入此处。")
-            .addTextArea((text) => {text.setPlaceholder("一行文字一则标题\n不要使用禁止符号")
-            .setValue(this.plugin.settings.linkWords).onChange((value) => {
-                    this.plugin.settings.linkWords = value;
-                    this.plugin.saveSettings();
-                });
-            text.inputEl.rows = 20;
-            text.inputEl.cols = 60;
-            });
-
-        var div0 = containerEl.createEl('p', {
-            cls: 'recent-files-donation',
-        });
-
-        var linkText = containerEl.doc.createDocumentFragment();
-        linkText.appendText("📣 转换同义链接「Alt+Q」：将选文转换为 [[|选文]] 样式后再选择文档")
-        linkText.appendChild(containerEl.doc.createElement('br'));
-        linkText.appendText("📣 转换标签「Alt+Shift+3」：将选文转换为 #选文 标签样式或反向转换")
-        linkText.appendChild(containerEl.doc.createElement('br'));
-        div0.appendChild(linkText);
-
-        /*
-        new obsidian.Setting(containerEl)
-            .setName('📣 智能换行「Enter」 默认支持```代码块```内换行缩进效果')
-            .setDesc('启用此项后，在非列表或代码块的文本中按下回车后补加一次换行；如想普通换行，可按下 Shift+Enter 键。')
-            .addToggle(toggle => toggle.setValue(this.plugin.settings.twoEnter)
-            .onChange((value) => {
-            this.plugin.settings.twoEnter = value;
-            this.plugin.saveSettings();
-        }));
-
-        new obsidian.Setting(containerEl)
-            .setName("📣 插入制表符「Tab」 在普通文本行中插入制表符效果")
-            .setDesc("启用此项后，在普通文本行中按下 Tab 键会插入4个空格，不再整行缩进。")
-            .addToggle(toggle => toggle.setValue(this.plugin.settings.isTab)
-            .onChange((value) => {
-            this.plugin.settings.isTab = value;
-            this.plugin.saveSettings();
-        }));
-        */
-
-
-        new obsidian.Setting(containerEl)
-            .setName("📣 智能语法「Alt+;」：自动转换、匹配或跳过各种类型的括号或代码块语法")
-            .setDesc("可将[( (< ([ \"[ \'[等组合转为〖〈〔『「，或将dv qy mm CSS js ty等字符串为代码块，将类型词语转为Callout引用语法。")
-
-        new obsidian.Setting(containerEl)
-            .setName("📣 智能粘贴「Ctrl+Alt+V」：将复制的内容粘贴为Md语法样式")
-            .setDesc("依据复制内容的类型，将表格、网址、本地路径或代码直接粘贴为MD表格、超链接或代码块格式。")
-
-        new obsidian.Setting(containerEl)
-            .setName("📣 键控光标移动「Alt+I, +J, +K, +L」")
-            .setDesc("按下Alt +I向上 +J向左 +K向下 +L向右 +U文首 +N文末 快捷键，控制光标移动位置。")
-
-        new obsidian.Setting(containerEl)
-            .setName("📣 键控光标跳转「Alt+Shift +I, +K」")
-            .setDesc("控制光标在标题、列表、待办、代码块和引用等文本行 或在粗体、高亮、注释、删除等MD语法字符之间 上下跳转。")
-
-        new obsidian.Setting(containerEl)
-            .setName('📣 键控切换同文件夹内的文件显示「Alt+Shift +U +N」')
-            .setDesc('按下快捷键，控制打开同文件夹内的上一文件或下一文件。')
-
-        new obsidian.Setting(containerEl)
-            .setName('📣 设置标题及粗、斜、删、亮等效果（MarkDown语法）功能')
-            .setDesc('启用后，当未选文本时按下Alt + Shift +C加粗 +G高亮 +S删除线 +U上标 +N下标 等快捷键，即开启或关闭 MD语法「格式刷」功能。')
-
-        var div1 = containerEl.createEl('p', {
-            cls: 'recent-files-donation',
-        });
-        var mdText = containerEl.doc.createDocumentFragment();
-        mdText.appendText('转换标题语法「待设置」：指定或取消当前行文本为N级标题；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('修改内部链接的显示名称「待设置」：从内部链接里路径中提取名称做为 [[|名称]] 显示。感谢火冷（85399416）增强相关功能；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('调高标题级别「待设置」：将当前标题级别调高一级（最高为一级）；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('调低标题级别「待设置」：将当前标题级别调低一级（最低为六级）；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('调高所有标题级别「待设置」：将所有标题的级别调高一级（最高为一级）。建议：空 QQ:1977878681；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('调低所有标题级别「待设置」：将所有标题的级别调低一级（最低为六级）。建议：空 QQ:1977878681；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换标签语法「Alt+Shift+3」：将选文转为或去除 #标签 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('标签双链互转「Ctrl+Alt+Shift+3」：将 [[笔记名]] 与 #笔记名 效果互转；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换粗体语法「Alt+C」：将选文转为或去除 **粗体** 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换斜体语法「Alt+X」：将选文转为或去除 *斜体* 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        //mdText.appendText('转换行内代码「Alt+D」：将选文转为或去除 `行内代码` 效果；');
-        //mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换删除线「Alt+S」：将选文转为或去除 ~~删除线~~ 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换下划线「Alt+H」：将选文转为或去除 <u>下划线</u> 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换代码块「待设置」：将选文转为或去除 ```代码块``` 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换上标语法「待设置」：将选文转为或去除 <sup>上标</sup> 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换下标语法「待设置」：将选文转为或去除 <sub>下标</sub> 效果；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('[[]]转为[]()语法「待设置」：将划选文本中的[[内部链接]]语法转为[超](链接)语法；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('[]()转为[[]]语法「待设置」：将划选文本中的[超](链接)语法转为[[内部链接]]语法；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('去除超链接语法「待设置」：将划选文本中的[]()超链接样式恢复为普通文本，即只保留[]内的内容；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('转换无语法文本「Ctrl+Alt+Z」：鼠标点击或划选文本的语法部分，可去除相应的MarkDown语法字符；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        mdText.appendText('获取无语法文本「Ctrl+Alt+C」：去除划选文本中的所有MarkDown语法字符，并写入剪贴板；');
-        mdText.appendChild(containerEl.doc.createElement('br'));
-        div1.appendChild(mdText);
-
-        /*
-        new obsidian.Setting(containerEl)
-            .setName("📣 是否启用Blut topaz 主题高亮配色支持")
-            .setDesc("启用此项后，可以使用Blut topaz主题自带的涂黑、填空等效果。")
-            .addToggle(toggle => toggle.setValue(this.plugin.settings.isBT)
-            .onChange((value) => {
-            this.plugin.settings.isBT = value;
-            this.plugin.saveSettings();
-        }));*/
-
-        new obsidian.Setting(containerEl)
-            .setName('📣 设置彩色文字效果（Html语法）功能')
-            .setDesc('点击颜色块调节颜色，在笔记编辑区划选文本后按下「Ctrl+Shift+ 1-5」快捷键，即可转为相应颜色的文本。')
-
-        const textColourPicker1 = containerEl.createEl("input", {
-            type: "color",
-        });
-        textColourPicker1.value = this.plugin.settings.hColor1;
-        textColourPicker1.addEventListener("change", async () => {
-            this.plugin.settings.hColor1 = textColourPicker1.value;
-            await this.plugin.saveSettings();
-        });
-
-        const textColourPicker2 = containerEl.createEl("input", {
-            type: "color",
-        });
-        textColourPicker2.value = this.plugin.settings.hColor2;
-        textColourPicker2.addEventListener("change", async () => {
-            this.plugin.settings.hColor2 = textColourPicker2.value;
-            await this.plugin.saveSettings();
-        });
-
-        const textColourPicker3 = containerEl.createEl("input", {
-            type: "color",
-        });
-        textColourPicker3.value = this.plugin.settings.hColor3;
-        textColourPicker3.addEventListener("change", async () => {
-            this.plugin.settings.hColor3 = textColourPicker3.value;
-            await this.plugin.saveSettings();
-        });
-
-        const textColourPicker4 = containerEl.createEl("input", {
-            type: "color",
-        });
-        textColourPicker4.value = this.plugin.settings.hColor4;
-        textColourPicker4.addEventListener("change", async () => {
-            this.plugin.settings.hColor4 = textColourPicker4.value;
-            await this.plugin.saveSettings();
-        });
-
-        const textColourPicker5 = containerEl.createEl("input", {
-            type: "color",
-        });
-        textColourPicker5.value = this.plugin.settings.hColor5;
-        textColourPicker5.addEventListener("change", async () => {
-            this.plugin.settings.hColor5 = textColourPicker5.value;
-            await this.plugin.saveSettings();
-        });
-
-        /*
-        new obsidian.Setting(containerEl)
-        .setName('转换文字颜色「Ctrl+Shift+1」')
-        .setDesc('设置文字颜色值（#000000）')
-        .addText(text => {
-            text
-                .setValue(this.plugin.settings.hColor1)
-                .onChange((value) => {
-                this.plugin.settings.hColor1 = value;
-                this.plugin.saveSettings();
-            });
-        });
-        */
-
-        new obsidian.Setting(containerEl)
-            .setName('📣 设置彩色背景效果（Html语法）功能')
-            .setDesc('点击颜色块调节颜色，在笔记编辑区划选文本后按下「Ctrl+Alt+ 1-5」快捷键，即可转为相应背景颜色的文本。')
-
-        const heatmapColourPicker1 = containerEl.createEl("input", {
-            type: "color",
-        });
-        heatmapColourPicker1.value = this.plugin.settings.bColor1;
-        heatmapColourPicker1.addEventListener("change", async () => {
-            this.plugin.settings.bColor1 = heatmapColourPicker1.value;
-            await this.plugin.saveSettings();
-        });
-
-        const heatmapColourPicker2 = containerEl.createEl("input", {
-            type: "color",
-        });
-        heatmapColourPicker2.value = this.plugin.settings.bColor2;
-        heatmapColourPicker2.addEventListener("change", async () => {
-            this.plugin.settings.bColor2 = heatmapColourPicker2.value;
-            await this.plugin.saveSettings();
-        });
-
-        const heatmapColourPicker3 = containerEl.createEl("input", {
-            type: "color",
-        });
-        heatmapColourPicker3.value = this.plugin.settings.bColor3;
-        heatmapColourPicker3.addEventListener("change", async () => {
-            this.plugin.settings.bColor3 = heatmapColourPicker3.value;
-            await this.plugin.saveSettings();
-        });
-
-        const heatmapColourPicker4 = containerEl.createEl("input", {
-            type: "color",
-        });
-        heatmapColourPicker4.value = this.plugin.settings.bColor4;
-        heatmapColourPicker4.addEventListener("change", async () => {
-            this.plugin.settings.bColor4 = heatmapColourPicker4.value;
-            await this.plugin.saveSettings();
-        });
-
-        const heatmapColourPicker5 = containerEl.createEl("input", {
-            type: "color",
-        });
-        heatmapColourPicker5.value= this.plugin.settings.bColor5;
-        heatmapColourPicker5.addEventListener("change", async () => {
-            this.plugin.settings.bColor5 = heatmapColourPicker5.value;
-            await this.plugin.saveSettings();
-        });
-
-        /*
-        new obsidian.Setting(containerEl)
-            .setName('转换背景颜色「Ctrl+Alt+2」')
-            .setDesc('设置背景颜色值（#000000）')
-            .addText(text => {
+        const linkSection = createSettingsSection(
+            containerEl,
+            '内部链接',
+            '控制潜在链接批量转换时优先匹配的标题。',
+        );
+        const linkSetting = new obsidian.Setting(linkSection)
+            .setName('潜在链接标题')
+            .setDesc('每行一个优先匹配标题；留空时使用库内笔记标题。转换会保护代码、公式、Frontmatter、现有链接和注释。')
+            .addTextArea((text) => {
                 text
-                    .setValue(this.plugin.settings.bColor2)
-                    .onChange((value) => {
-                    this.plugin.settings.bColor2 = value;
-                    this.plugin.saveSettings();
-                });
+                    .setPlaceholder('每行一个标题')
+                    .setValue(plugin.settings.linkWords)
+                    .onChange(async (value) => {
+                        plugin.settings.linkWords = value;
+                        await plugin.saveSettings();
+                    });
+                text.inputEl.rows = 8;
+                text.inputEl.addClass('quick-editing-link-titles');
             });
-        */
-        new obsidian.Setting(containerEl)
-            .setName('📣 左侧窗口滚屏幅度')
-            .setDesc('按下 Alt+Shift+I +K 快捷键可上下滚动左侧窗口。拖动滑条可调节滚屏幅度（像素值）：')
-            .addSlider(slider => slider
+        linkSetting.settingEl.addClass('quick-editing-link-setting');
+
+        const colorSection = createSettingsSection(
+            containerEl,
+            '格式刷配色',
+            '自定义五组文字颜色与背景颜色；颜色会同步用于格式刷入口。',
+        );
+        const colorGrid = colorSection.createDiv({ cls: 'quick-editing-color-grid' });
+        const colorSettings = [
+            { key: 'hColor1', name: '文字 1' },
+            { key: 'hColor2', name: '文字 2' },
+            { key: 'hColor3', name: '文字 3' },
+            { key: 'hColor4', name: '文字 4' },
+            { key: 'hColor5', name: '文字 5' },
+            { key: 'bColor1', name: '背景 1' },
+            { key: 'bColor2', name: '背景 2' },
+            { key: 'bColor3', name: '背景 3' },
+            { key: 'bColor4', name: '背景 4' },
+            { key: 'bColor5', name: '背景 5' },
+        ] as const;
+        for (const colorSetting of colorSettings) {
+            const setting = new obsidian.Setting(colorGrid)
+                .setName(colorSetting.name)
+                .addColorPicker((picker) => picker
+                    .setValue(plugin.settings[colorSetting.key])
+                    .onChange(async (value) => {
+                        plugin.settings[colorSetting.key] = value;
+                        await plugin.saveSettings();
+                    }));
+            setting.settingEl.addClass('quick-editing-color-card');
+        }
+
+        const windowSection = createSettingsSection(
+            containerEl,
+            '双窗辅助',
+            '调整联动阅读时的滚动步长。',
+        );
+        const scrollSetting = new obsidian.Setting(windowSection)
+            .setName('左侧窗口滚动幅度')
+            .setDesc('用于“左窗向上滚动”和“左窗向下滚动”命令。')
+            .addSlider((slider) => slider
                 .setLimits(25, 900, 25)
-                .setValue(this.plugin.settings.maxScroll)
+                .setValue(plugin.settings.maxScroll)
                 .setDynamicTooltip()
-                .onChange((value) => {
-                this.plugin.settings.maxScroll = value;
-                this.plugin.saveSettings();
-            }));
-        /*
-        new obsidian.Setting(containerEl)
-            .setName("📣 在状态栏显示 写作进度 → 目标字数")
-            .setDesc("启用此项后，在状态栏显示写作进度。拖动滑条可调节目标字数：")
-            .addToggle(toggle => toggle.setValue(this.plugin.settings.isShowNum)
-                .onChange((value) => {
-                this.plugin.settings.isShowNum = value;
-                this.plugin.saveSettings();
-            }))
-            .addSlider(slider => slider
-                .setLimits(100, 10000, 100)
-                .setValue(this.plugin.settings.maxTry)
-                .setDynamicTooltip()
-                .onChange((value) => {
-                this.plugin.settings.maxTry = value;
-                this.plugin.saveSettings();
-            }));
+                .onChange(async (value) => {
+                    plugin.settings.maxScroll = value;
+                    await plugin.saveSettings();
+                }));
+        scrollSetting.settingEl.addClass('quick-editing-slider-setting');
 
-        */
-        new obsidian.Setting(containerEl)
-            .setName('📣 设置字符、标点、状态等转换功能')
-
-        var div3 = containerEl.createEl('p', {
-            cls: 'recent-files-donation',
+        const coreNote = containerEl.createDiv({ cls: 'quick-editing-core-note' });
+        const coreNoteIcon = coreNote.createDiv({ cls: 'quick-editing-core-note-icon' });
+        obsidian.setIcon(coreNoteIcon, 'info');
+        const coreNoteCopy = coreNote.createDiv();
+        coreNoteCopy.createEl('strong', { text: '核心能力分工' });
+        coreNoteCopy.createEl('p', {
+            text: '标题、基础格式、Callout、列表、代码块、视图切换、段落删除和路径复制均直接使用 Obsidian 核心命令。',
         });
-        var charText = containerEl.doc.createDocumentFragment();
-        charText.appendText('修复外来文本「待设置」：对 PDF 或 OCR 识别的大段文本进行修复（断行、标点）。感谢 zhl111 建议；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('修复错误标点「待设置」：将笔记中的汉字中间的英文标点修复为中文标点。感谢叶茜彬（7424863）参与；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('修复错误语法「待设置」：修复错误的MD语法，如1。列表、【】（）链接、[[]]()回链等；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('转换路径语法「待设置」：将 c:\\windows 与 [](file:///c:\/windows) 路径语法相互转换；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('简体转为繁体「待设置」：将笔记中的简体汉字转换为繁体汉字；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('繁体转为简体「待设置」：将笔记中的繁体汉字转换为简体汉字；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('列表转为图示「待设置」：选中列表文本，转换为相应层级的MerMaid语法图示，支持修改列表后更新图示；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('转换待办状态「待设置」：转换选文行首的待办状态，顺序为 -[ x-!?><+] 效果；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('转换callout语法「待设置」：转换选文为callout语法样式，即行首补加>[!note]及>符号；');
-        charText.appendChild(containerEl.doc.createElement('br'));
-        charText.appendText('转换填空「待设置」：将选文转为或去除 {{c1::选文}} 效果；');
-        //charText.appendChild(containerEl.doc.createElement('br'));
-        //charText.appendText('【选文】「待设置」：在选文两端添加或去除 【】符号；');
-        //charText.appendChild(containerEl.doc.createElement('br'));
-        //charText.appendText('（选文）「待设置」：在选文两端添加或去除 （）符号；');
-        //charText.appendChild(containerEl.doc.createElement('br'));
-        //charText.appendText('「选文」「待设置」：在选文两端添加或去除 「」符号；');
-        //charText.appendChild(containerEl.doc.createElement('br'));
-        //charText.appendText('《选文》「待设置」：在选文两端添加或去除 《》符号；');
-        div3.appendChild(charText);
-
-        new obsidian.Setting(containerEl)
-            .setName('📣 设置修复断行、选择段句、嵌入网页等功能')
-
-        var div4 = containerEl.createEl('p', {
-            cls: 'recent-files-donation',
-        });
-        var toolText = containerEl.doc.createDocumentFragment();
-        toolText.appendText('计算所选结果「F9」：计算所选的四则运算式的结果，并写入剪贴板以备粘贴；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('修复意外断行「待设置」：修复笔记中的意外断行（删除结尾不是句式标点的换行符）；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('搜索当前文本「待设置」：通过搜索面板在当前文档中搜索划选内容；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('选择当前整段「待设置」：选择光标所在的当前整段文本；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('选择当前整句「待设置」：选择光标所在的当前整句（中文）文本；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('选择当前语法「Alt+Shift+K」：选择光标所处的MrakDown语法文本（如加粗、高亮、删除、链接等效果）；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('获取标注文本「待设置」：获取标题、高亮、注释及前缀(#标注\批注\反思)等文本内容；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('获取当前字符数「待设置」：计算页面中可见字符（汉字、字母、数字、标点）和不可见字符（空格等）个数；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('自动设置标题「待设置」：将选文中的单行文本（末尾非标点或数字）转为标题；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('指定当前文件名「待设置」：划选文字后指定为当前笔记的文件名；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('嵌入当前网址页面「待设置」：在行末插入iframe代码来嵌入所选网址页面；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        toolText.appendText('获取相对路径「待设置」：获取当前笔记在库目录内的相对路径；');
-        toolText.appendChild(containerEl.doc.createElement('br'));
-        div4.appendChild(toolText);
-
-
-        new obsidian.Setting(containerEl)
-            .setName('📣 设置折叠标题、增减空行或空格等功能')
-
-        var div5 = containerEl.createEl('p', {
-            cls: 'recent-files-donation',
-        });
-        var lineText = containerEl.doc.createDocumentFragment();
-        lineText.appendText('折叠同级标题「Ctrl+Shift+Alt+D」：判断当前行的标题层级，将正文中同级标题一次性折叠起来；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('折叠某级别标题「待设置」：将正文中某一层级的标题一次性折叠起来。感谢火冷（85399416）增强相关功能；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('删除当前段落「Ctrl+D」：删除当前段落；若在[[]]内会先删除链接内容、在有序列表项内会自动调小后面序号；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('插入有效空行「Ctrl+Shift+Alt+Enter」：插入带有全角空格的空白行，保证渲染时占据一行；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('空格转为空行「待设置」：将两个汉字中间的空格或制表符转为空白行；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('批量插入空行「Ctrl+Shift+L」：在划选的文本行或全文中间批量插入空白行；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('批量去除空行「Ctrl+Alt+L」：批量去除划选文本或全文中的空白行；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('上方插入空行「待设置」：在当前文本行的上行插入空白行；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('下方插入空行「待设置」：在当前文本行的下行插入空白行；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('全文首行缩进「待设置」：在全文的每个行首添加两个全角空格，产生缩进效果；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('当前行缩进「待设置」：在当前行文本的行首添加两个全角空格，产生缩进效果；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('行首添加空格「待设置」：在每行文本的行首添加两个空格；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('去除行首空格「待设置」：批量去除每行文本的行首空格字符；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('末尾追加空格「待设置」：在每行文本的末尾追加两个空格；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('去除末尾空格「待设置」：批量去除每行文本的末尾空格字符；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('添加间隔空格「待设置」：在正文的汉字与字母之间批量添加空格，如 china 中国；');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        lineText.appendText('去除所有空格「待设置」：去除正文中所有的全、半角空格。');
-        lineText.appendChild(containerEl.doc.createElement('br'));
-        div5.appendChild(lineText);
-
-        var div6 = containerEl.createEl('p', {
-            cls: 'recent-files-donation',
-        });
-        var qqText = containerEl.doc.createDocumentFragment();
-        qqText.appendChild(containerEl.doc.createElement('br'));
-        qqText.appendText('欢迎通过 GitHub Issues 提交 Quick Editing 的问题与功能建议。');
-        qqText.appendChild(containerEl.doc.createElement('br'));
-        qqText.appendText('🆗 感谢Cuman(QQ:35669852)的指导与调试。');
-        div6.appendChild(qqText);
-    };
-};
-
+    }
+}
 export default QuickEditingPlugin;
-
-/*
-var en = {
-    loadThisPlugin: 'Loading Quick Editing plugin',
-    thisPluginName: 'Quick Editing V',
-    helloWorld: '<b>Welcome to Quick Editing!</b>',
-    qq: 'View the <a href="https://github.com/Hanser0521/quick-editing/releases">Quick Editing GitHub page</a>',
-    close: 'Click here to close the window !',
-    FunctionUpdate: 'This Version adds a bilingual interface between Chinese and English, abolition of the "Smart line" function, the conversion of English and Chinese punctuation features optimized for the "Repair error Punctuation" ...',
-    setInterTab: '📣 Insert tab [ Tab ]: Inserts the tab effect in the text line',
-    whenEnabledTab: 'When enabled, pressing Tab in a line of text inserts four spaces instead of indenting the entire line.',
-    convertInternalLink: '📣 Convert the internal link [ Alt + Z ]: Add or remove the [[]] symbol at both ends of the selection',
-    SupportBatchConversion: 'Support batch conversion of multi-line text (separated by a newline character) or multiple text (separated by a dot sign).',
-    ConvertSynonymousLink: 'Convert synonymous link [ Alt + Q ]: Convert selected text to [[|selectedText]] style before selecting document',
-    setSmartPaste: '📣 Smart paste [ Ctrl + Alt + V ]: paste the copied content into MD syntax style',
-    isPasteTableURL: 'Paste the table, URL, local path, or code directly into a MD table, hyperlink, or code block format, depending on the type of copied content.',
-    setSmartSyntax: '📣 Smart syntax [ Alt + ; ]: Automatically convert, match, or skip various types of parenthesis or code block syntax',
-    isYouCanCombine: 'You can combine [( (< ([ "[ \'[ to 〖〈〔『「, or convert common program language names such as dv, qy, mm, CSS, js, ja, ty names (strings) to code block syntax.',
-    ConvertCursorMove: '📣 Control the cursor movement with the key button [ Alt+I, +J, +K, +L ]',
-    isConvertCursorMove: 'Press Alt+I up, +J up, +K Down, +L right, +U begin, +N end, Shortcut to control the movement of the cursor.',
-    ConvertCursorJump: '📣 Control the cursor goto with the key button [ Alt+Shift +J, +L ]',
-    isConvertCursorJump: 'Control the cursor to jump back and forth between the text lines such as title, list item, to-do item, code block and reference, or markdown syntax such as bold, highlight, comment, delete and link',
-};
-
-var zhCN = {
-    loadThisPlugin: '加载 Quick Editing 插件',
-    thisPluginName: 'Quick Editing V',
-    helloWorld: '<b>欢迎使用 Quick Editing！</b>',
-    qq: '查看 <a href="https://github.com/Hanser0521/quick-editing/releases">Quick Editing GitHub 页面</a>',
-    close: '点击此处 可关闭提示窗口......',
-    setInterTab: '📣 插入制表符「Tab」 在普通文本行中插入制表符效果',
-    whenEnabledTab: '启用此项后，在普通文本行中按下 Tab 键会插入4个空格，不再整行缩进。',
-    convertInternalLink: '📣 转换内部链接「Alt+Z」：在选文两端添加或去除 [[ ]] 符号',
-    SupportBatchConversion: '支持转换多行文本（需用换行符分隔）或多句文本（需用顿号分隔）。',
-    ConvertSynonymousLink: '转换同义链接「Alt+Q」：将选文转换为 [[|选文]] 样式后再选择文档',
-    setSmartPaste: '📣 智能粘贴「Ctrl+Alt+V」：将复制的内容粘贴为Md语法样式',
-    isPasteTableURL: '依据复制内容的类型，将表格、网址、本地路径或代码直接粘贴为MD表格、超链接或代码块格式。',
-    setSmartSyntax: '📣 智能语法「Alt+;」：自动转换、匹配或跳过各种类型的括号或代码块语法',
-    isYouCanCombine: '可将[( (< ([ "[ \'[等组合转为〖〈〔『「，或将dv、qy、mm、CSS、js、ja、ty等程序语言名转为代码块、类型词语转为Callout引用语法。',
-    ConvertCursorMove: '📣 键控光标移动「Alt+I, +J, +K, +L」',
-    isConvertCursorMove: '按下Alt +I向上 +J向左 +K向下 +L向右 +U文首 +N文末 快捷键，控制光标移动位置。',
-    ConvertCursorJump: '📣 键控光标跳转「Alt+Shift +I, +K」',
-    isConvertCursorJump: '控制光标在标题、列表项、待办事项、代码块和引用等文本行之间来回跳转，或在粗体、突出显示、注释、删除和链接等Markdown语法之间来回跳转',
-};
-
-// Code from https://github.com/valentine195/obsidian-admonition/blob/master/src/lang/helpers.ts
-const localeMap = {
-    en,
-    'zh-cn': zhCN,
-};
-const locale = localeMap[obsidian.moment.locale()];
-function t(_str) {
-    return (locale && locale[_str]) || en[_str];
-};
-
-//t('字段名称')
-//以上为 多语言字段名-调用语法
-*/

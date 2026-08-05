@@ -58,6 +58,41 @@ const collectCommandIds = (node) => {
 };
 collectCommandIds(mainSourceFile);
 assert.equal(commandIds.length, commandCallCount, 'every active addQuickCommand call must use a literal ID');
+const coreCommandReplacements = {
+  'set-mode': 'editor:toggle-source / markdown:toggle-preview',
+  'tag-text': 'editor:insert-tag',
+  'mouse-up': 'editor/native cursor movement',
+  'mouse-down': 'editor/native cursor movement',
+  'mouse-left': 'editor/native cursor movement',
+  'mouse-right': 'editor/native cursor movement',
+  'mouse-start': 'editor/native cursor movement',
+  'mouse-end': 'editor/native cursor movement',
+  'note-start': 'editor/native cursor movement',
+  'note-end': 'editor/native cursor movement',
+  'biaoti0-text': 'editor:set-heading-0',
+  'biaoti1-text': 'editor:set-heading-1',
+  'biaoti2-text': 'editor:set-heading-2',
+  'biaoti3-text': 'editor:set-heading-3',
+  'biaoti4-text': 'editor:set-heading-4',
+  'biaoti5-text': 'editor:set-heading-5',
+  'biaoti6-text': 'editor:set-heading-6',
+  'cuti-text': 'editor:toggle-bold',
+  'gaoliang-text': 'editor:toggle-highlight',
+  'xieti-text': 'editor:toggle-italics',
+  'shanchu-text': 'editor:toggle-strikethrough',
+  'add-daima': 'editor:insert-codeblock',
+  'add-callout': 'editor:insert-callout',
+  'y2w-list': 'editor:toggle-bullet-list',
+  'w2y-list': 'editor:toggle-numbered-list',
+  'delete-list': 'editor:delete-paragraph',
+  'copy-filePath': 'workspace:copy-path',
+};
+const retainedCoreDuplicates = commandIds.filter((id) => id in coreCommandReplacements);
+assert.deepEqual(
+  retainedCoreDuplicates,
+  [],
+  'commands duplicated by Obsidian core must not be registered',
+);
 const duplicateIds = commandIds.filter((id, index) => commandIds.indexOf(id) !== index);
 assert.deepEqual(Array.from(new Set(duplicateIds)), [], 'duplicate command IDs found');
 assert.deepEqual(
