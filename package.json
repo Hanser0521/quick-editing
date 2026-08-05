@@ -1,6 +1,6 @@
 {
   "name": "quick-editing",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Quick Markdown editing tools for Obsidian",
   "main": "main.js",
   "type": "module",

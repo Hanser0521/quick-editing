@@ -55,7 +55,7 @@ only changes Markdown content after a preview.
 
 Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件。它提供智能符号、格式刷、智能粘贴、内部链接、文本清理、空格与空行整理等高频操作，并为批量修改加入 Markdown 上下文保护、变更预览和撤销入口。
 
-- 当前版本：`1.0.2`
+- 当前版本：`1.0.3`
 - Obsidian 最低版本：`1.8.7`
 - 支持平台：桌面端
 - 实机验证：macOS、Obsidian `1.13.4`

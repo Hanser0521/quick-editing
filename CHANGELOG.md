@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.3 - 2026-08-05
+
+- Removed version-by-version release notes from the README overview so the
+  public plugin page stays focused on stable features, usage, installation, and
+  licensing information.
+- Kept release history in this changelog and updated the Obsidian Community
+  short description to English.
+
 ## 1.0.2 - 2026-08-05
 
 - Replaced release-notice `innerHTML` writes with safe DOM construction.
