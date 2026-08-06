@@ -68,7 +68,6 @@ Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件�
 
 Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-canzi/Enhanced-editing](https://github.com/obsidian-canzi/Enhanced-editing) 继续维护。项目已更名并使用新的插件 ID，不会覆盖旧版“增强编辑”的安装目录。
 
-版本更新记录统一收录在 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 功能组
 
