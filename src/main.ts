@@ -46,6 +46,23 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 const 当前版本 = '1.0.3';
 const 功能更新 = 'Quick Editing 1.0.3\n- 精简项目介绍，版本历史统一移至 CHANGELOG\n- 同步 Obsidian 社区公开页面的英文短描述';
 const 发布页面 = 'https://github.com/Hanser0521/quick-editing/releases';
+
+function createColorMenuTitle(
+    label: string,
+    color: string,
+    style: 'text' | 'highlight',
+): DocumentFragment {
+    const fragment = createFragment();
+    const title = fragment.createSpan({ cls: 'quick-editing-menu-color-title' });
+    const swatch = title.createSpan({
+        cls: `quick-editing-menu-color-swatch is-${style}`,
+        attr: { 'aria-hidden': 'true' },
+    });
+    swatch.style.setProperty('--quick-editing-menu-color', color);
+    title.createSpan({ text: label });
+    return fragment;
+}
+
 const 上标图标 ='<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor"d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41M21.85 9h-4.88V8l.89-.82c.76-.64 1.32-1.18 1.7-1.63c.37-.44.56-.85.57-1.23a.884.884 0 0 0-.27-.7c-.18-.19-.47-.28-.86-.29c-.31.01-.58.07-.84.17l-.66.39l-.45-1.17c.27-.22.59-.39.98-.53S18.85 2 19.32 2c.78 0 1.38.2 1.78.61c.4.39.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.48-.76.93-1.27 1.36l-.64.52v.02h2.58V9z"/></svg>';
 const 下标图标 = '<svg xmlns="http://www.w3.org/2000/svg" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path fill="currentColor" d="M16 7.41L11.41 12L16 16.59L14.59 18L10 13.41L5.41 18L4 16.59L8.59 12L4 7.41L5.41 6L10 10.59L14.59 6L16 7.41m5.85 13.62h-4.88v-1l.89-.8c.76-.65 1.32-1.19 1.7-1.63c.37-.44.56-.85.57-1.24a.898.898 0 0 0-.27-.7c-.18-.16-.47-.28-.86-.28c-.31 0-.58.06-.84.18l-.66.38l-.45-1.17c.27-.21.59-.39.98-.53s.82-.24 1.29-.24c.78.04 1.38.25 1.78.66c.4.41.62.93.62 1.57c-.01.56-.19 1.08-.54 1.55c-.34.47-.76.92-1.27 1.36l-.64.52v.02h2.58v1.35z"/></svg>';
 const 格式刷图标 ='<svg t="1650117667147" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="12959" width="120" height="120"><path d="M409.856 331.9296l103.1936-103.168 307.712 307.712-103.168 103.168z" fill="#777677" p-id="12960"></path><path d="M384 358.4s-153.6 128-256 99.84c23.04 38.4 53.76 76.8 51.2 79.36 79.36 17.92 204.8-51.2 204.8-51.2l25.6 25.6s-133.12 102.4-204.8 76.8c66.56 99.84 212.48 225.28 256 256 97.28 0 230.4-179.2 230.4-179.2L384 358.4z" fill="#FCAF6D" p-id="12961"></path><path d="M641.3568 306.9952l153.856-153.856 103.1936 103.168-153.856 153.856z" fill="#777677" p-id="12962"></path></svg>';
@@ -1311,64 +1328,64 @@ class QuickEditingPlugin extends obsidian.Plugin {
             });*/
 
             menu.addItem((item) => {
-                item.setTitle("文本颜色1");
+                item.setTitle(createColorMenuTitle("文本颜色1", this.settings.hColor1, "text"));
                 item.setIcon("文本刷1");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor1));
             });
 
             menu.addItem((item) => {
-                item.setTitle("文本颜色2");
+                item.setTitle(createColorMenuTitle("文本颜色2", this.settings.hColor2, "text"));
                 item.setIcon("文本刷2");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor2));
             });
 
             menu.addItem((item) => {
-                item.setTitle("文本颜色3");
+                item.setTitle(createColorMenuTitle("文本颜色3", this.settings.hColor3, "text"));
                 item.setIcon("文本刷3");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor3));
             });
             menu.addItem((item) => {
-                item.setTitle("文本颜色4");
+                item.setTitle(createColorMenuTitle("文本颜色4", this.settings.hColor4, "text"));
                 item.setIcon("文本刷4");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor4));
             });
             menu.addItem((item) => {
-                item.setTitle("文本颜色5");
+                item.setTitle(createColorMenuTitle("文本颜色5", this.settings.hColor5, "text"));
                 item.setIcon("文本刷5");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor5));
             });
 
             menu.addItem((item) => {
-                item.setTitle("荧光笔1");
+                item.setTitle(createColorMenuTitle("荧光笔1", this.settings.bColor1, "highlight"));
                 item.setIcon("格式刷1");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor1));
             });
             menu.addItem((item) => {
-                item.setTitle("荧光笔2");
+                item.setTitle(createColorMenuTitle("荧光笔2", this.settings.bColor2, "highlight"));
                 item.setIcon("格式刷2");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor2));
             });
             menu.addItem((item) => {
-                item.setTitle("荧光笔3");
+                item.setTitle(createColorMenuTitle("荧光笔3", this.settings.bColor3, "highlight"));
                 item.setIcon("格式刷3");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor3));
             });
             menu.addItem((item) => {
-                item.setTitle("荧光笔4");
+                item.setTitle(createColorMenuTitle("荧光笔4", this.settings.bColor4, "highlight"));
                 item.setIcon("格式刷4");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor4));
             });
             menu.addItem((item) => {
-                item.setTitle("荧光笔5");
+                item.setTitle(createColorMenuTitle("荧光笔5", this.settings.bColor5, "highlight"));
                 item.setIcon("格式刷5");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor5));

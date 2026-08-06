@@ -6,6 +6,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
 const versions = JSON.parse(fs.readFileSync('versions.json', 'utf8'));
 const source = fs.readFileSync('src/main.ts', 'utf8');
+const styles = fs.readFileSync('styles.css', 'utf8');
 const sourceFiles = fs.readdirSync('src', { recursive: true })
   .filter((file) => typeof file === 'string' && file.endsWith('.ts'));
 const uncheckedFiles = sourceFiles.filter((file) =>
@@ -41,15 +42,21 @@ assert.equal(sourceVersion, manifest.version, 'source and manifest versions diff
 for (let index = 1; index <= 5; index += 1) {
   assert.match(
     source,
-    new RegExp(`item\\.setTitle\\("文本颜色${index}"\\);\\s*item\\.setIcon\\("文本刷${index}"\\);`),
-    `text color ${index} must use its matching color icon`,
+    new RegExp(`item\\.setTitle\\(createColorMenuTitle\\("文本颜色${index}", this\\.settings\\.hColor${index}, "text"\\)\\);`),
+    `text color ${index} must show its configured color in the menu title`,
   );
   assert.match(
     source,
-    new RegExp(`item\\.setTitle\\("荧光笔${index}"\\);\\s*item\\.setIcon\\("格式刷${index}"\\);`),
-    `highlighter ${index} must use its matching color icon`,
+    new RegExp(`item\\.setTitle\\(createColorMenuTitle\\("荧光笔${index}", this\\.settings\\.bColor${index}, "highlight"\\)\\);`),
+    `highlighter ${index} must show its configured color in the menu title`,
   );
 }
+
+assert.match(
+  styles,
+  /\.quick-editing-menu-color-swatch\s*\{/,
+  'menu color swatches must have plugin-scoped styles',
+);
 
 const mainSourceFile = ts.createSourceFile(
   'src/main.ts',

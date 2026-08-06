@@ -1,3 +1,29 @@
+.quick-editing-menu-color-title {
+  display: inline-flex;
+  gap: 0.55em;
+  align-items: center;
+}
+
+.quick-editing-menu-color-swatch {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 0.82em;
+  height: 0.82em;
+  border: 1px solid var(--background-modifier-border-hover);
+  background-color: var(--quick-editing-menu-color);
+  box-shadow: 0 0 0 1px var(--background-primary);
+}
+
+.quick-editing-menu-color-swatch.is-text {
+  border-radius: 50%;
+}
+
+.quick-editing-menu-color-swatch.is-highlight {
+  width: 1.15em;
+  height: 0.68em;
+  border-radius: 0.2em;
+}
+
 .quick-editing-transformation-preview pre {
   max-height: 12rem;
   overflow: auto;

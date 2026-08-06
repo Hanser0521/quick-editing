@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Show each configured text color and highlighter color directly in the status
-  bar format-brush menu for faster visual selection.
+- Show each configured text color and highlighter color as an inline swatch in
+  the status bar format-brush menu, including themes that hide menu icons.
 
 ## 1.0.3 - 2026-08-05
 
