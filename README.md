@@ -36,12 +36,15 @@ with attribution and public upstream authorization recorded in
 
 ## Installation
 
+Open **Settings → Community plugins → Browse**, search for **Quick Editing**,
+then select **Install** and **Enable**.
+
+### Manual installation
+
 Download `main.js`, `manifest.json`, and `styles.css` from the latest
 [GitHub Release](https://github.com/Hanser0521/quick-editing/releases), then put
 the files in `<vault>/.obsidian/plugins/quick-editing/`. Reload Obsidian and
 enable **Quick Editing** under Community plugins.
-
-For beta installation through BRAT, add `Hanser0521/quick-editing`.
 
 ## Privacy and permissions
 
@@ -123,7 +126,13 @@ Quick Editing 不再维护下列重复实现。请直接在 Obsidian“设置 �
 
 ## 安装
 
-### GitHub Release
+### Obsidian 官方插件库
+
+1. 打开“设置 → 第三方插件 → 浏览”。
+2. 搜索 `Quick Editing`。
+3. 点击“安装”，然后启用插件。
+
+### 手动安装
 
 1. 从 [Releases](https://github.com/Hanser0521/quick-editing/releases) 下载最新版。
 2. 将 `main.js`、`manifest.json` 和 `styles.css` 放入：
@@ -133,14 +142,6 @@ Quick Editing 不再维护下列重复实现。请直接在 Obsidian“设置 �
    ```
 
 3. 重载 Obsidian，在“设置 → 第三方插件”中启用 Quick Editing。
-
-### BRAT
-
-安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat)，然后添加：
-
-```text
-Hanser0521/quick-editing
-```
 
 ### 从旧版“增强编辑”迁移
 
