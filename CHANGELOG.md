@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Show each configured text color and highlighter color directly in the status
+  bar format-brush menu for faster visual selection.
+
 ## 1.0.3 - 2026-08-05
 
 - Removed version-by-version release notes from the README overview so the

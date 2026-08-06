@@ -38,6 +38,19 @@ assert.equal(
 const sourceVersion = /const 当前版本 = ['"]([^'"]+)['"]/.exec(source)?.[1];
 assert.equal(sourceVersion, manifest.version, 'source and manifest versions differ');
 
+for (let index = 1; index <= 5; index += 1) {
+  assert.match(
+    source,
+    new RegExp(`item\\.setTitle\\("文本颜色${index}"\\);\\s*item\\.setIcon\\("文本刷${index}"\\);`),
+    `text color ${index} must use its matching color icon`,
+  );
+  assert.match(
+    source,
+    new RegExp(`item\\.setTitle\\("荧光笔${index}"\\);\\s*item\\.setIcon\\("格式刷${index}"\\);`),
+    `highlighter ${index} must use its matching color icon`,
+  );
+}
+
 const mainSourceFile = ts.createSourceFile(
   'src/main.ts',
   source,

@@ -1312,74 +1312,64 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
             menu.addItem((item) => {
                 item.setTitle("文本颜色1");
-                //item.setIcon("文本刷1");
-                item.setIcon("普通格式刷");
+                item.setIcon("文本刷1");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor1));
             });
 
             menu.addItem((item) => {
                 item.setTitle("文本颜色2");
-                //item.setIcon("文本刷2");
-                item.setIcon("普通格式刷");
+                item.setIcon("文本刷2");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor2));
             });
 
             menu.addItem((item) => {
                 item.setTitle("文本颜色3");
-                //item.setIcon("文本刷3");
-                item.setIcon("普通格式刷");
+                item.setIcon("文本刷3");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor3));
             });
             menu.addItem((item) => {
                 item.setTitle("文本颜色4");
-                //item.setIcon("文本刷4");
-                item.setIcon("普通格式刷");
+                item.setIcon("文本刷4");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor4));
             });
             menu.addItem((item) => {
                 item.setTitle("文本颜色5");
-                //item.setIcon("文本刷5");
-                item.setIcon("普通格式刷");
+                item.setIcon("文本刷5");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor5));
             });
 
             menu.addItem((item) => {
                 item.setTitle("荧光笔1");
-                //item.setIcon("格式刷1");
-                item.setIcon("普通格式刷");
+                item.setIcon("格式刷1");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor1));
             });
             menu.addItem((item) => {
                 item.setTitle("荧光笔2");
-                //item.setIcon("格式刷2");
-                item.setIcon("普通格式刷");
+                item.setIcon("格式刷2");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor2));
             });
             menu.addItem((item) => {
                 item.setTitle("荧光笔3");
-                //item.setIcon("格式刷3");
-                item.setIcon("普通格式刷");
+                item.setIcon("格式刷3");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor3));
             });
             menu.addItem((item) => {
                 item.setTitle("荧光笔4");
-                //item.setIcon("格式刷4");
-                item.setIcon("普通格式刷");
+                item.setIcon("格式刷4");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor4));
             });
             menu.addItem((item) => {
                 item.setTitle("荧光笔5");
-                //item.setIcon("格式刷5");
-                item.setIcon("普通格式刷");
+                item.setIcon("格式刷5");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor5));
             });
