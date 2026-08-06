@@ -12,7 +12,7 @@ interface Replacement extends TextRange {
   title: string;
 }
 
-const UNSAFE_WIKI_TITLE = /[\[\]|#^\r\n]/;
+const UNSAFE_WIKI_TITLE = /[[\]|#^\r\n]/;
 const ASCII_WORD = /[A-Za-z0-9_]/;
 
 function addRegexRanges(value: string, expression: RegExp, ranges: TextRange[]): void {

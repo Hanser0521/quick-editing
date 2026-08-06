@@ -69,7 +69,7 @@ function parseMarkdownTree(markdown: string): PositionedNode {
   return fromMarkdown(markdown, {
     extensions: [frontmatter(['yaml', 'toml']), math()],
     mdastExtensions: [frontmatterFromMarkdown(['yaml', 'toml']), mathFromMarkdown()],
-  }) as PositionedNode;
+  });
 }
 
 function collectNodesByType(

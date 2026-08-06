@@ -1,6 +1,6 @@
 {
   "name": "quick-editing",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Quick Markdown editing tools for Obsidian",
   "main": "main.js",
   "type": "module",
@@ -12,10 +12,11 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "smoke": "node tests/bundle-smoke.cjs",
     "verify": "node scripts/verify-project.mjs && node scripts/verify-main-types.mjs",
-    "check": "npm run verify && npm run test && npm run build && npm run smoke"
+    "check": "npm run lint && npm run verify && npm run test && npm run build && npm run smoke"
   },
   "keywords": [
     "obsidian",
@@ -23,11 +24,17 @@
     "markdown"
   ],
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^22.15.17",
     "esbuild": "0.25.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "^0.4.1",
+    "globals": "^17.9.0",
+    "jiti": "^2.7.0",
     "linkedom": "^0.18.13",
     "obsidian": "1.13.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.66.0"
   },
   "dependencies": {
     "mdast-util-from-markdown": "^2.0.3",

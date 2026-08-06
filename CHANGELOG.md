@@ -1,11 +1,19 @@
 # Changelog
 
-## Unreleased
+## 1.0.4 - 2026-08-06
 
 - Show each configured text color and highlighter color as an inline swatch in
   the status bar format-brush menu, including themes that hide menu icons.
 - Keep the format-brush picker in Obsidian's DOM menu when macOS native menus
   are enabled, because native menus cannot render plugin colors or HTML.
+- Added the official Obsidian ESLint rules to the release checks and made every
+  warning fail CI so scanner regressions cannot silently return.
+- Removed legacy `var` declarations, unnecessary regular-expression escapes,
+  obsolete variables and SVG constants, and other dead code reported by the
+  community scanner.
+- Hardened clipboard writes, smart-paste event handling, alias metadata type
+  checks, and multi-window undo notices.
+- Added a contributor guide with the supported setup and verification process.
 
 ## 1.0.3 - 2026-08-05
 

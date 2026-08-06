@@ -23,6 +23,8 @@ with attribution and public upstream authorization recorded in
 - MetadataCache-aware internal links generated through Obsidian's link API.
 - Searchable settings, per-command switches, and multi-window support.
 - One-click removal of image links without deleting attachment files.
+- Configured text and highlighter colors shown directly in the status bar
+  format-brush menu for quick visual selection.
 
 ## Usage
 
@@ -58,7 +60,7 @@ only changes Markdown content after a preview.
 
 Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件。它提供智能符号、格式刷、智能粘贴、内部链接、文本清理、空格与空行整理等高频操作，并为批量修改加入 Markdown 上下文保护、变更预览和撤销入口。
 
-- 当前版本：`1.0.3`
+- 当前版本：`1.0.4`
 - Obsidian 最低版本：`1.8.7`
 - 支持平台：桌面端
 - 实机验证：macOS、Obsidian `1.13.4`
@@ -86,6 +88,7 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 - 结构编辑：标题级别、段落选择与排序、空行增减、行首/行尾空格和中英文间距。
 - 文本整理：中英文标点、外来文本、错误语法、意外断行、注释、简繁转换和路径格式。
 - 辅助操作：计算选区、提取标注、修改文件名、搜索选区和列表转图示。
+- 状态栏格式刷：文字颜色 1–5 与荧光笔 1–5 会直接显示对应色块；即使 macOS 启用原生菜单，也会使用可显示颜色的 Obsidian 菜单。
 
 ## 快捷键配置
 
@@ -157,6 +160,7 @@ npm run check
 ```
 
 - `npm run dev`：监听源码并生成带 source map 的 `main.js`。
+- `npm run lint`：执行 Obsidian 官方推荐的 ESLint 规则，任何警告都会使检查失败。
 - `npm run verify`：检查版本一致性、命令 ID、类型诊断和禁止使用的 API。
 - `npm test`：运行纯文本、粘贴、链接和设置等单元测试。
 - `npm run build`：执行 TypeScript 检查并生成生产版 `main.js`。

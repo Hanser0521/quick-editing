@@ -35,8 +35,8 @@ export function normalizeMixedPunctuation(value: string): string {
 
 export function repairMarkdownSyntax(value: string): string {
   return value
-    .replace(/[【[]([^\[\]【】]*)[】\]][（(]([^()（）]*)[）)]/g, '[$1]($2)')
-    .replace(/\[+([^\[\]]*)\]+\(/g, '[$1](')
+    .replace(/[【[]([^[\]【】]*)[】\]][（(]([^()（）]*)[）)]/g, '[$1]($2)')
+    .replace(/\[+([^[\]]*)\]+\(/g, '[$1](')
     .replace(/(?<=^|\s) {4}/gm, '\t')
     .replace(/(?<=\]\([^()\r\n]+\))(?=\r?$)/gm, '  ')
     .replace(/\*\s+>\s+/g, '- ')

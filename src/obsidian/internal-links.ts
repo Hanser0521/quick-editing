@@ -23,7 +23,7 @@ function parseLinkInput(value: string): ParsedLinkInput | null {
   const subpathIndex = target.search(/[#^]/);
   const linkpath = (subpathIndex >= 0 ? target.slice(0, subpathIndex) : target).trim();
   const subpath = subpathIndex >= 0 ? target.slice(subpathIndex).trim() : '';
-  if (linkpath === '' || /[\[\]\n\r]/.test(linkpath)) return null;
+  if (linkpath === '' || /[[\]\n\r]/.test(linkpath)) return null;
   return { linkpath, subpath, alias, wasWikiLink: Boolean(wikiMatch) };
 }
 
