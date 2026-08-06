@@ -4,6 +4,8 @@
 
 - Show each configured text color and highlighter color as an inline swatch in
   the status bar format-brush menu, including themes that hide menu icons.
+- Keep the format-brush picker in Obsidian's DOM menu when macOS native menus
+  are enabled, because native menus cannot render plugin colors or HTML.
 
 ## 1.0.3 - 2026-08-05
 

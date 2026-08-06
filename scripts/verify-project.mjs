@@ -57,6 +57,11 @@ assert.match(
   /\.quick-editing-menu-color-swatch\s*\{/,
   'menu color swatches must have plugin-scoped styles',
 );
+assert.match(
+  source,
+  /obsidian\.addIcon\("文本刷5", 文本刷5\);[\s\S]{0,1500}const menu = obsidian\.Menu\.forEvent\(e\)\.setUseNativeMenu\(false\);/,
+  'format brush menu must use DOM rendering so configured colors remain visible',
+);
 
 const mainSourceFile = ts.createSourceFile(
   'src/main.ts',

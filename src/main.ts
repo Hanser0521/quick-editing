@@ -1235,7 +1235,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 new obsidian.Notice("已关闭格式刷！");
             }
 
-            const menu = obsidian.Menu.forEvent(e);
+            const menu = obsidian.Menu.forEvent(e).setUseNativeMenu(false);
 
             menu.addItem((item) => {
                 item.setTitle("设置插件");
