@@ -6,6 +6,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
 const versions = JSON.parse(fs.readFileSync('versions.json', 'utf8'));
 const source = fs.readFileSync('src/main.ts', 'utf8');
+const englishLocaleSource = fs.readFileSync('src/i18n/locales/en.ts', 'utf8');
 const styles = fs.readFileSync('styles.css', 'utf8');
 const sourceFiles = fs.readdirSync('src', { recursive: true })
   .filter((file) => typeof file === 'string' && file.endsWith('.ts'));
@@ -42,12 +43,12 @@ assert.equal(sourceVersion, manifest.version, 'source and manifest versions diff
 for (let index = 1; index <= 5; index += 1) {
   assert.match(
     source,
-    new RegExp(`item\\.setTitle\\(createColorMenuTitle\\("文本颜色${index}", this\\.settings\\.hColor${index}, "text"\\)\\);`),
+    new RegExp(`item\\.setTitle\\(createColorMenuTitle\\(t\\('menu\\.textColor', \\{ index: ${index} \\}\\), this\\.settings\\.hColor${index}, "text"\\)\\);`),
     `text color ${index} must show its configured color in the menu title`,
   );
   assert.match(
     source,
-    new RegExp(`item\\.setTitle\\(createColorMenuTitle\\("荧光笔${index}", this\\.settings\\.bColor${index}, "highlight"\\)\\);`),
+    new RegExp(`item\\.setTitle\\(createColorMenuTitle\\(t\\('menu\\.highlighter', \\{ index: ${index} \\}\\), this\\.settings\\.bColor${index}, "highlight"\\)\\);`),
     `highlighter ${index} must show its configured color in the menu title`,
   );
 }
@@ -102,6 +103,37 @@ const collectCommandIds = (node) => {
 };
 collectCommandIds(mainSourceFile);
 assert.equal(commandIds.length, commandCallCount, 'every active addQuickCommand call must use a literal ID');
+
+const englishLocaleSourceFile = ts.createSourceFile(
+  'src/i18n/locales/en.ts',
+  englishLocaleSource,
+  ts.ScriptTarget.Latest,
+  true,
+  ts.ScriptKind.TS,
+);
+const englishCommandIds = [];
+const collectEnglishCommandIds = (node) => {
+  if (
+    ts.isVariableDeclaration(node)
+    && ts.isIdentifier(node.name)
+    && node.name.text === 'enCommandNames'
+    && node.initializer
+    && ts.isObjectLiteralExpression(node.initializer)
+  ) {
+    for (const property of node.initializer.properties) {
+      if (ts.isPropertyAssignment(property) && ts.isStringLiteral(property.name)) {
+        englishCommandIds.push(property.name.text);
+      }
+    }
+  }
+  ts.forEachChild(node, collectEnglishCommandIds);
+};
+collectEnglishCommandIds(englishLocaleSourceFile);
+assert.deepEqual(
+  [...englishCommandIds].sort(),
+  [...commandIds].sort(),
+  'English command names must exactly cover all active commands',
+);
 assert.deepEqual(
   commandsWithDefaultHotkeys,
   [],

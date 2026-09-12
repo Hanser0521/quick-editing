@@ -1,7 +1,11 @@
 import type { Editor } from 'obsidian';
 
 import { htmlToMarkdown, type HtmlDocumentParser } from './html-to-markdown.ts';
-import { transformClipboardText, type SmartPasteKind } from './smart-paste.ts';
+import {
+  transformClipboardText,
+  type SmartPasteKind,
+  type SmartPasteLabels,
+} from './smart-paste.ts';
 
 export interface ClipboardPayload {
   html: string;
@@ -19,9 +23,10 @@ export function transformClipboardPayload(
   payload: ClipboardPayload,
   selectedText = '',
   parse?: HtmlDocumentParser,
+  labels?: SmartPasteLabels,
 ): ClipboardPasteResult | null {
   if (payload.html.trim() !== '' && STRUCTURED_HTML.test(payload.html)) {
-    const markdown = htmlToMarkdown(payload.html, parse);
+    const markdown = htmlToMarkdown(payload.html, parse, labels?.image);
     if (markdown !== '') {
       return {
         kind: /<table\b/i.test(payload.html) ? 'html-table' : 'html',
@@ -30,7 +35,7 @@ export function transformClipboardPayload(
     }
   }
 
-  const plainResult = transformClipboardText(payload.text, selectedText);
+  const plainResult = transformClipboardText(payload.text, selectedText, labels);
   if (plainResult.kind === 'empty' || plainResult.kind === 'code') return null;
   return plainResult;
 }
@@ -39,6 +44,7 @@ export function handleClipboardEvent(
   event: ClipboardEvent,
   editor: Editor,
   parse?: HtmlDocumentParser,
+  labels?: SmartPasteLabels,
 ): ClipboardPasteResult | null {
   if (event.defaultPrevented || !event.clipboardData) return null;
   const result = transformClipboardPayload(
@@ -48,6 +54,7 @@ export function handleClipboardEvent(
     },
     editor.getSelection(),
     parse,
+    labels,
   );
   if (!result) return null;
   event.preventDefault();

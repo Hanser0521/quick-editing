@@ -1,7 +1,7 @@
 {
   "id": "quick-editing",
   "name": "Quick Editing",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "minAppVersion": "1.8.7",
   "description": "Fast Markdown transformations, smart paste, text cleanup, internal links, spacing, and blank-line editing.",
   "author": "Hanser0521",

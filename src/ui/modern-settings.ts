@@ -1,6 +1,8 @@
 import { Notice, Setting } from 'obsidian';
 
 import { FEATURE_GROUPS, type CommandCatalogEntry } from '../features/catalog';
+import type { FeatureGroupKey } from '../features/types';
+import { getQuickEditingLocale, t, type MessageKey } from '../i18n';
 import type { QuickEditingSettings } from '../settings';
 
 export interface ModernSettingsPlugin {
@@ -12,6 +14,32 @@ export interface ModernSettingsPlugin {
 
 function normalizedSearch(value: string): string {
   return value.trim().toLocaleLowerCase();
+}
+
+const FEATURE_NAME_KEYS: Record<FeatureGroupKey, MessageKey> = {
+  smartSymbols: 'feature.smartSymbols.name',
+  formatBrush: 'feature.formatBrush.name',
+  smartPaste: 'feature.smartPaste.name',
+  fullDocumentCleanup: 'feature.fullDocumentCleanup.name',
+};
+
+const FEATURE_DESCRIPTION_KEYS: Record<FeatureGroupKey, MessageKey> = {
+  smartSymbols: 'feature.smartSymbols.description',
+  formatBrush: 'feature.formatBrush.description',
+  smartPaste: 'feature.smartPaste.description',
+  fullDocumentCleanup: 'feature.fullDocumentCleanup.description',
+};
+
+function localizedFeatureGroup(key: FeatureGroupKey) {
+  const original = FEATURE_GROUPS.find((definition) => definition.key === key);
+  return {
+    key,
+    name: t(FEATURE_NAME_KEYS[key]),
+    description: t(FEATURE_DESCRIPTION_KEYS[key]),
+    keywords: original?.keywords ?? [],
+    originalName: original?.name ?? '',
+    originalDescription: original?.description ?? '',
+  };
 }
 
 export function createSettingsSection(
@@ -32,11 +60,12 @@ export function renderModernSettings(
 ): void {
   const featureSection = createSettingsSection(
     containerEl,
-    '功能模块',
-    '按使用场景启用功能；关闭后，该组命令和自动处理不会注册。',
+    t('settings.featureSection'),
+    t('settings.featureSectionDescription'),
   );
   const featureGrid = featureSection.createDiv({ cls: 'quick-editing-feature-grid' });
-  for (const definition of FEATURE_GROUPS) {
+  for (const sourceDefinition of FEATURE_GROUPS) {
+    const definition = localizedFeatureGroup(sourceDefinition.key);
     const row = new Setting(featureGrid)
       .setName(definition.name)
       .setDesc(definition.description)
@@ -45,20 +74,22 @@ export function renderModernSettings(
         .onChange(async (value) => {
           plugin.settings.featureGroups[definition.key] = value;
           await plugin.saveSettings();
-          new Notice('功能模块已保存，重载 Quick Editing 后生效');
+          new Notice(t('settings.featureSaved'));
         }));
     row.settingEl.addClass('quick-editing-feature-card');
     row.settingEl.dataset.quickEditingKeywords = [
       definition.name,
       definition.description,
+      definition.originalName,
+      definition.originalDescription,
       ...definition.keywords,
     ].join(' ');
   }
 
   const behaviorGrid = featureSection.createDiv({ cls: 'quick-editing-behavior-grid' });
   const pasteSetting = new Setting(behaviorGrid)
-    .setName('粘贴时自动识别')
-    .setDesc('识别 URL、路径、HTML 和 Office 表格。')
+    .setName(t('settings.autoPaste'))
+    .setDesc(t('settings.autoPasteDescription'))
     .addToggle((toggle) => toggle
       .setValue(plugin.settings.smartPasteOnPaste)
       .onChange(async (value) => {
@@ -68,8 +99,8 @@ export function renderModernSettings(
   pasteSetting.settingEl.addClass('quick-editing-behavior-card');
 
   const previewSetting = new Setting(behaviorGrid)
-    .setName('全文转换前预览')
-    .setDesc('显示修改数量、影响行和前后片段。')
+    .setName(t('settings.preview'))
+    .setDesc(t('settings.previewDescription'))
     .addToggle((toggle) => toggle
       .setValue(plugin.settings.previewFullDocumentChanges)
       .onChange(async (value) => {
@@ -80,27 +111,27 @@ export function renderModernSettings(
 
   const commandSection = createSettingsSection(
     containerEl,
-    '命令管理',
-    '可按名称、ID、功能组或关键词筛选，并逐条控制是否注册。',
+    t('settings.commandSection'),
+    t('settings.commandSectionDescription'),
   );
   const commandRows: Array<{ entry: CommandCatalogEntry; element: HTMLElement }> = [];
   const entries = [...plugin.getCommandCatalog()]
-    .sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'));
+    .sort((left, right) => left.name.localeCompare(right.name, getQuickEditingLocale()));
 
   const search = new Setting(commandSection)
-    .setName('搜索命令');
+    .setName(t('settings.commandSearch'));
   search.settingEl.addClass('quick-editing-command-search');
 
   const resultCount = commandSection.createDiv({ cls: 'quick-editing-command-count' });
   const commandList = commandSection.createDiv({ cls: 'quick-editing-command-list' });
   const emptyState = commandSection.createDiv({
     cls: 'quick-editing-command-empty',
-    text: '没有匹配的命令',
+    text: t('settings.commandEmpty'),
   });
   emptyState.hide();
 
   for (const entry of entries) {
-    const group = FEATURE_GROUPS.find((definition) => definition.key === entry.group);
+    const group = entry.group ? localizedFeatureGroup(entry.group) : undefined;
     const row = new Setting(commandList)
       .setName(entry.name)
       .addToggle((toggle) => toggle
@@ -108,7 +139,7 @@ export function renderModernSettings(
         .onChange(async (value) => {
           plugin.settings.commandEnabled[entry.id] = value;
           await plugin.saveSettings();
-          new Notice('命令设置已保存，重载 Quick Editing 后生效');
+          new Notice(t('settings.commandSaved'));
         }));
     row.settingEl.addClass('quick-editing-command-row');
     row.descEl.empty();
@@ -142,14 +173,17 @@ export function renderModernSettings(
       row.element.toggle(visible);
       if (visible) visibleCount += 1;
     }
-    resultCount.setText(`显示 ${visibleCount} / ${commandRows.length} 条命令`);
+    resultCount.setText(t('settings.commandCount', {
+      count: visibleCount,
+      total: commandRows.length,
+    }));
     emptyState.toggle(visibleCount === 0);
   };
 
   search.addText((text) => {
-    text.setPlaceholder('搜索名称、ID 或功能组');
+    text.setPlaceholder(t('settings.commandSearchPlaceholder'));
     text.inputEl.addClass('quick-editing-command-search-input');
-    text.inputEl.setAttr('aria-label', '搜索 Quick Editing 命令');
+    text.inputEl.setAttr('aria-label', t('settings.commandSearchAria'));
     text.onChange(updateResults);
   });
   updateResults('');

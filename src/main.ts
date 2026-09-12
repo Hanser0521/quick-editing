@@ -1,5 +1,9 @@
 import * as obsidian from 'obsidian';
-import { evaluateArithmetic } from './utils/arithmetic';
+import {
+    ArithmeticEvaluationError,
+    evaluateArithmetic,
+    type ArithmeticErrorCode,
+} from './utils/arithmetic';
 import { escapeRegExp } from './utils/text';
 import { convertWindowsPathSyntax } from './utils/windows-path';
 import { sanitizeSettings, type QuickEditingSettings } from './settings';
@@ -35,6 +39,13 @@ import { findAdjacentMatch } from './editor/find-adjacent-match';
 import { summarizeTransformation } from './transformations/preview';
 import { TransformationPreviewModal } from './ui/transformation-preview-modal';
 import { createSettingsSection, renderModernSettings } from './ui/modern-settings';
+import { createQuickEditingSettingDefinitions } from './ui/setting-definitions';
+import {
+    commandSearchNames,
+    localizeCommandName,
+    t,
+    type MessageKey,
+} from './i18n';
 
 interface ObsidianWindow extends Window {
     createFragment(callback?: (fragment: DocumentFragment) => void): DocumentFragment;
@@ -47,8 +58,8 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 ***************************************************************************** */
 
 
-const 当前版本 = '1.0.4';
-const 功能更新 = 'Quick Editing 1.0.4\n- 修复 Obsidian 社区扫描警告并接入官方代码检查\n- 格式刷菜单直接显示每组文字和荧光笔颜色';
+const 当前版本 = '1.0.5';
+const 功能更新 = t('notice.releaseNotes', { version: 当前版本 });
 const 发布页面 = 'https://github.com/Hanser0521/quick-editing/releases';
 
 function createColorMenuTitle(
@@ -118,6 +129,14 @@ class QuickEditingPlugin extends obsidian.Plugin {
     private readonly registeredCommandCatalog: CommandCatalogEntry[] = [];
     private readonly registeredEditorWindows = new WeakSet<Window>();
 
+    private smartPasteLabels() {
+        return {
+            image: t('output.image'),
+            link: t('output.link'),
+            local: t('output.local'),
+        };
+    }
+
     getCommandCatalog(): readonly CommandCatalogEntry[] {
         return this.registeredCommandCatalog;
     }
@@ -128,11 +147,18 @@ class QuickEditingPlugin extends obsidian.Plugin {
     }
 
     private addQuickCommand(command: obsidian.Command): void {
-        const entry = commandCatalogEntry(command);
+        const localizedCommand = {
+            ...command,
+            name: localizeCommandName(command.id, command.name),
+        };
+        const entry = commandCatalogEntry(
+            localizedCommand,
+            commandSearchNames(command.id, command.name),
+        );
         this.registeredCommandCatalog.push(entry);
         if (!this.isCommandEnabled(command.id)) return;
         if (entry.group && !this.settings.featureGroups[entry.group]) return;
-        super.addCommand(command);
+        super.addCommand(localizedCommand);
     }
 
     private registerPopoutEditorWindow(win: Window): void {
@@ -204,19 +230,19 @@ class QuickEditingPlugin extends obsidian.Plugin {
         this.registerEvent(this.app.workspace.on('editor-paste', (event, editor) => {
             if (event.defaultPrevented) return;
             if (!this.settings.featureGroups.smartPaste || !this.settings.smartPasteOnPaste) return;
-            const result = handleClipboardEvent(event, editor);
+            const result = handleClipboardEvent(event, editor, undefined, this.smartPasteLabels());
             if (!result) return;
             event.preventDefault();
             const labels: Record<string, string> = {
-                html: 'HTML 富文本已转为 Markdown',
-                'html-table': 'HTML 表格已通过 DOM 解析为 Markdown 表格',
-                'media-url': '媒体网址已转为 Markdown 嵌入',
-                url: '网址已转为 Markdown 链接',
-                'media-path': '媒体路径已转为 Markdown 嵌入',
-                path: '本地路径已转为 Markdown 链接',
-                table: '制表符数据已转为 Markdown 表格',
+                html: t('notice.smartPasteHtml'),
+                'html-table': t('notice.smartPasteHtmlTable'),
+                'media-url': t('notice.smartPasteMediaUrl'),
+                url: t('notice.smartPasteUrl'),
+                'media-path': t('notice.smartPasteMediaPath'),
+                path: t('notice.smartPastePath'),
+                table: t('notice.smartPasteTable'),
             };
-            new obsidian.Notice(labels[result.kind] ?? '已完成智能粘贴');
+            new obsidian.Notice(labels[result.kind] ?? t('notice.smartPasteDone'));
         }));
         this.registerEvent(this.app.workspace.on('window-open', (_workspaceWindow, win) => {
             this.registerPopoutEditorWindow(win);
@@ -309,7 +335,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             name: '关闭格式刷',
             callback: () => {
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
         });
         this.addQuickCommand({
@@ -916,7 +942,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
             }else if(isText||isCTxt ||isBgC ||isCTS || isGLS || isGLS1 ||isGLS2 ||isGLS3 ||isSB || isSCS || isXB || isXHS || isXTS || isTHS ||isTCS||isWKS || isbt2Txt || isbt1Txt){
                 this.关闭格式刷();
-                newNotice = new obsidian.Notice("已关闭格式刷！");
+                newNotice = new obsidian.Notice(t('notice.brushClosed'));
             }
         });
 
@@ -926,7 +952,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 if(e.key == "Esc" || e.key == "Escape"){
                     if(isText||isCTxt ||isBgC ||isCTS || isGLS || isGLS1 ||isGLS2 ||isGLS3 ||isSB || isSCS || isXB || isXHS || isXTS || isTHS ||isTCS||isWKS || isbt2Txt || isbt1Txt){
                         this.关闭格式刷();
-                        newNotice = new obsidian.Notice("已关闭格式刷！");
+                        newNotice = new obsidian.Notice(t('notice.brushClosed'));
                     }
                 }
             };
@@ -942,20 +968,20 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 if(this.settings.version != 当前版本){
                     const noticeContent = createFragment();
                     const noticeHeading = noticeContent.createEl('p');
-                    noticeHeading.createEl('strong', { text: '欢迎使用 Quick Editing！' });
+                    noticeHeading.createEl('strong', { text: t('notice.welcome') });
                     for (const line of 功能更新.split('\n')) {
                         noticeContent.createDiv({ text: line });
                     }
                     const releaseParagraph = noticeContent.createEl('p');
                     releaseParagraph.createEl('a', {
-                        text: '查看 Quick Editing github 发布页面',
+                        text: t('notice.releasePage'),
                         attr: {
                             href: 发布页面,
                             target: '_blank',
                             rel: 'noopener noreferrer',
                         },
                     });
-                    noticeContent.createEl('p', { text: '点击此处可关闭提示窗口。' });
+                    noticeContent.createEl('p', { text: t('notice.dismiss') });
                     new obsidian.Notice(noticeContent, 0);
                     this.settings.version = 当前版本;
                     void this.saveSettings();
@@ -996,15 +1022,18 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if (!this.获取编辑器信息()) return;
         if(this.settings.isShowNum){
             let maxTry = this.settings.maxTry;
-            let 进度 = Math.round(笔记正文.length/maxTry*100)+"% → "+maxTry +"字";
+            let 进度 = t('stats.writingProgress', {
+                percent: Math.round(笔记正文.length / maxTry * 100),
+                target: maxTry,
+            });
             this.footnoteStatusBar.setText(进度);
         }
     }
 
-    打开设置(提示文字 = "请在左侧选择「Quick Editing」") {
+    打开设置(提示文字 = t('notice.selectPluginSettings')) {
         const opened = executeCoreCommand(this.app, "app:open-settings");
         if (!opened) {
-            new obsidian.Notice("无法打开设置，请手动进入 Obsidian 设置");
+            new obsidian.Notice(t('notice.openSettingsFailed'));
             return;
         }
         new obsidian.Notice(提示文字);
@@ -1016,10 +1045,10 @@ class QuickEditingPlugin extends obsidian.Plugin {
         );
         try {
             await navigator.clipboard.writeText(pluginDir);
-            new obsidian.Notice(`插件目录路径已复制：${pluginDir}`);
+            new obsidian.Notice(t('notice.pluginPathCopied', { path: pluginDir }));
         } catch (error) {
             console.error("Quick Editing：复制插件目录路径失败", error);
-            new obsidian.Notice(`插件目录：${pluginDir}`);
+            new obsidian.Notice(t('notice.pluginPath', { path: pluginDir }));
         }
     }
 
@@ -1038,102 +1067,102 @@ class QuickEditingPlugin extends obsidian.Plugin {
             const menu = obsidian.Menu.forEvent(e);
 
             menu.addItem((item) => {
-                item.setTitle("设置插件");
+                item.setTitle(t('menu.pluginSettings'));
                 item.setIcon("gear");
                 item.onClick(() => this.打开设置());
             });
             menu.addItem((item) => {
-                item.setTitle("复制插件目录路径");
+                item.setTitle(t('menu.copyPluginPath'));
                 item.setIcon("copy");
                 item.onClick(() => void this.复制插件目录路径());
             });
             menu.addItem((item) => {
-                item.setTitle("设置快捷键");
+                item.setTitle(t('menu.hotkeys'));
                 item.setIcon("gear");
-                item.onClick(() => this.打开设置("请选择「快捷键」，然后搜索「Quick Editing」"));
+                item.onClick(() => this.打开设置(t('notice.selectHotkeys')));
             });
             menu.addItem((item) => {
-                item.setTitle("去除所有空格");
+                item.setTitle(t('menu.removeAllSpaces'));
                 item.setIcon("bracket-glyph");
                 item.onClick(() =>this.去除所有空格());
             });
             menu.addItem((item) => {
-                item.setTitle("添加间隔空格");
+                item.setTitle(t('menu.addCjkSpacing'));
                 item.setIcon("bracket-glyph");
                 item.onClick(() =>this.添加间隔空格());
             });
             menu.addItem((item) => {
-                item.setTitle("全文首行缩进");
+                item.setTitle(t('menu.indentDocument'));
                 item.setIcon("indent-glyph");
                 item.onClick(() =>this.全文首行缩进());
             });
             menu.addItem((item) => {
-                item.setTitle("批量去除空行");
+                item.setTitle(t('menu.removeBlankLines'));
                 item.setIcon("expand-vertically");
                 item.onClick(() =>this.批量去除空行());
             });
             menu.addItem((item) => {
-                item.setTitle("批量插入空行");
+                item.setTitle(t('menu.insertBlankLines'));
                 item.setIcon("expand-vertically");
                 item.onClick(() =>this.批量插入空行());
             });
             menu.addItem((item) => {
-                item.setTitle("折叠同级标题");
+                item.setTitle(t('menu.foldPeerHeadings'));
                 item.setIcon("double-up-arrow-glyph");
                 item.onClick(() =>this.折叠同级标题());
             });
             menu.addItem((item) => {
-                item.setTitle("提升多个标题等级");
+                item.setTitle(t('menu.promoteHeadings'));
                 item.setIcon("double-up-arrow-glyph");
                 item.onClick(() =>this.调高所有标题级别());
             });
             menu.addItem((item) => {
-                item.setTitle("下调多个标题等级");
+                item.setTitle(t('menu.demoteHeadings'));
                 item.setIcon("double-down-arrow-glyph");
                 item.onClick(() =>this.调低所有标题级别());
             });
             menu.addItem((item) => {
-                item.setTitle("嵌入当前网址");
+                item.setTitle(t('menu.embedCurrentUrl'));
                 item.setIcon("link");
                 item.onClick(() =>this.嵌入当前网址页面());
             });
             menu.addItem((item) => {
-                item.setTitle("获取搜索结果");
+                item.setTitle(t('menu.copySearchResults'));
                 item.setIcon("link");
                 item.onClick(() =>this.获取搜索结果());
             });
             menu.addItem((item) => {
-                item.setTitle("获取当前字数");
+                item.setTitle(t('menu.currentWordCount'));
                 item.setIcon("info");
                 item.onClick(() =>this.获取当前字数());
             });
             menu.addItem((item) => {
-                item.setTitle("自动设置标题");
+                item.setTitle(t('menu.autoHeading'));
                 item.setIcon("heading-glyph");
                 item.onClick(() =>this.自动设置标题());
             });
             menu.addItem((item) => {
-                item.setTitle("列表转为图示");
+                item.setTitle(t('menu.listToDiagram'));
                 item.setIcon("dot-network");
                 item.onClick(() =>this.列表转为图示());
             });
             menu.addItem((item) => {
-                item.setTitle("修复外来文本");
+                item.setTitle(t('menu.repairImportedText'));
                 item.setIcon("indent-glyph");
                 item.onClick(() =>this.修复外来文本());
             });
             menu.addItem((item) => {
-                item.setTitle("修复错误语法");
+                item.setTitle(t('menu.repairSyntax'));
                 item.setIcon("check-small");
                 item.onClick(() =>this.修复错误语法());
             });
             menu.addItem((item) => {
-                item.setTitle("修复意外断行");
+                item.setTitle(t('menu.repairLineBreaks'));
                 item.setIcon("indent-glyph");
                 item.onClick(() =>this.修复意外断行());
             });
             menu.addItem((item) => {
-                item.setTitle("转换潜在链接");
+                item.setTitle(t('menu.convertPotentialLinks'));
                 item.setIcon("broken-link");
                 item.onClick(() =>this.转换潜在链接());
             });
@@ -1181,160 +1210,160 @@ class QuickEditingPlugin extends obsidian.Plugin {
                };
             if(isCTxt ||isBgC ||isCTS || isGLS ||isGLS1 ||isGLS2 ||isGLS3 || isSB || isSCS || isXB || isXHS || isXTS|| isTHS ||isTCS||isWKS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
 
             const menu = obsidian.Menu.forEvent(e).setUseNativeMenu(false);
 
             menu.addItem((item) => {
-                item.setTitle("设置插件");
+                item.setTitle(t('menu.pluginSettings'));
                 item.setIcon("gear");
                 item.setSection("settings");
                 item.onClick(() => this.打开设置());
             });
             menu.addItem((item) => {
-                item.setTitle("设置快捷键");
+                item.setTitle(t('menu.hotkeys'));
                 item.setIcon("gear");
                 item.setSection("settings");
-                item.onClick(() => this.打开设置("请选择「快捷键」，然后搜索「Quick Editing」"));
+                item.onClick(() => this.打开设置(t('notice.selectHotkeys')));
             });
             menu.addItem((item) => {
-                item.setTitle("刷为一级标题");
+                item.setTitle(t('menu.brushHeading1'));
                 item.setIcon("普通格式刷");
                 item.setSection("biaoti");
                 item.onClick(() =>{
                     this.关闭格式刷();
                     isbt1Txt = true;
-                    new obsidian.Notice("一级标题格式刷 已打开！")
+                    new obsidian.Notice(t('notice.brushOpened', { name: t('menu.brushHeading1') }));
                 });
             });
             menu.addItem((item) => {
-                item.setTitle("刷为二级标题");
+                item.setTitle(t('menu.brushHeading2'));
                 item.setIcon("普通格式刷");
                 item.setSection("biaoti");
                 item.onClick(() =>{
                     this.关闭格式刷();
                     isbt2Txt = true;
-                    new obsidian.Notice("二级标题格式刷 已打开！")
+                    new obsidian.Notice(t('notice.brushOpened', { name: t('menu.brushHeading2') }));
                 });
             });
 
             menu.addItem((item) => {
-                item.setTitle("**粗体**");
+                item.setTitle(t('menu.bold'));
                 item.setIcon("普通格式刷");
                 item.setSection("format");
                 item.onClick(() =>this.粗体格式刷());
             });
             menu.addItem((item) => {
-                item.setTitle("==高亮==");
+                item.setTitle(t('menu.highlight'));
                 item.setIcon("普通格式刷");
                 item.setSection("format");
                 item.onClick(() =>this.高亮格式刷());
             });
             menu.addItem((item) => {
-                item.setTitle("~~删除线~~");
+                item.setTitle(t('menu.strikethrough'));
                 item.setIcon("普通格式刷");
                 item.setSection("format");
                 item.onClick(() =>this.删除线格式刷());
             });
             menu.addItem((item) => {
-                item.setTitle(" *斜体* ");
+                item.setTitle(t('menu.italic'));
                 item.setIcon("普通格式刷");
                 item.setSection("format");
                 item.onClick(() =>this.斜体格式刷());
             });
             menu.addItem((item) => {
-                item.setTitle(" 上标⁺⁻ⁿ ");
+                item.setTitle(t('menu.superscript'));
                 item.setIcon("普通格式刷");
                 item.setSection("format");
                 item.onClick(() =>this.上标格式刷());
             });
             menu.addItem((item) => {
-                item.setTitle(" 下标₁₂₃ ");
+                item.setTitle(t('menu.subscript'));
                 item.setIcon("普通格式刷");
                 item.setSection("format");
                 item.onClick(() =>this.下标格式刷());
             });
             menu.addItem((item) => {
-                item.setTitle("纯文本");
+                item.setTitle(t('menu.plainText'));
                 item.setIcon("普通格式刷");
                 item.setSection("format");
                 item.onClick(() =>{
                     this.关闭格式刷();
                     isText = true;
-                    new obsidian.Notice("纯文本格式刷 已打开！")
+                    new obsidian.Notice(t('notice.brushOpened', { name: t('menu.plainText') }));
                 });
             });
 
             /*
             menu.addItem((item) => {
-                item.setTitle("关闭 格式刷");
+                item.setTitle(t('menu.closeBrush'));
                 item.setIcon("cross");
                 item.onClick(() =>{
                     this.关闭格式刷();
-                    new obsidian.Notice("已关闭格式刷！");
+                    new obsidian.Notice(t('notice.brushClosed'));
                 });
             });*/
 
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("文本颜色1", this.settings.hColor1, "text"));
+                item.setTitle(createColorMenuTitle(t('menu.textColor', { index: 1 }), this.settings.hColor1, "text"));
                 item.setIcon("文本刷1");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor1));
             });
 
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("文本颜色2", this.settings.hColor2, "text"));
+                item.setTitle(createColorMenuTitle(t('menu.textColor', { index: 2 }), this.settings.hColor2, "text"));
                 item.setIcon("文本刷2");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor2));
             });
 
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("文本颜色3", this.settings.hColor3, "text"));
+                item.setTitle(createColorMenuTitle(t('menu.textColor', { index: 3 }), this.settings.hColor3, "text"));
                 item.setIcon("文本刷3");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor3));
             });
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("文本颜色4", this.settings.hColor4, "text"));
+                item.setTitle(createColorMenuTitle(t('menu.textColor', { index: 4 }), this.settings.hColor4, "text"));
                 item.setIcon("文本刷4");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor4));
             });
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("文本颜色5", this.settings.hColor5, "text"));
+                item.setTitle(createColorMenuTitle(t('menu.textColor', { index: 5 }), this.settings.hColor5, "text"));
                 item.setIcon("文本刷5");
                 item.setSection("fontcolor");
                 item.onClick(() => this.彩字格式刷(this.settings.hColor5));
             });
 
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("荧光笔1", this.settings.bColor1, "highlight"));
+                item.setTitle(createColorMenuTitle(t('menu.highlighter', { index: 1 }), this.settings.bColor1, "highlight"));
                 item.setIcon("格式刷1");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor1));
             });
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("荧光笔2", this.settings.bColor2, "highlight"));
+                item.setTitle(createColorMenuTitle(t('menu.highlighter', { index: 2 }), this.settings.bColor2, "highlight"));
                 item.setIcon("格式刷2");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor2));
             });
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("荧光笔3", this.settings.bColor3, "highlight"));
+                item.setTitle(createColorMenuTitle(t('menu.highlighter', { index: 3 }), this.settings.bColor3, "highlight"));
                 item.setIcon("格式刷3");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor3));
             });
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("荧光笔4", this.settings.bColor4, "highlight"));
+                item.setTitle(createColorMenuTitle(t('menu.highlighter', { index: 4 }), this.settings.bColor4, "highlight"));
                 item.setIcon("格式刷4");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor4));
             });
             menu.addItem((item) => {
-                item.setTitle(createColorMenuTitle("荧光笔5", this.settings.bColor5, "highlight"));
+                item.setTitle(createColorMenuTitle(t('menu.highlighter', { index: 5 }), this.settings.bColor5, "highlight"));
                 item.setIcon("格式刷5");
                 item.setSection("highlight_html");
                 item.onClick(() => this.彩底格式刷(this.settings.bColor5));
@@ -1344,37 +1373,37 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(this.settings.isBT)
             {
                 menu.addItem((item) => {
-                    item.setTitle("*==多彩高亮1==*");
+                    item.setTitle(t('menu.colorHighlight1'));
                     item.setIcon("普通格式刷");
                     item.setSection("highlight");
                     item.onClick(() =>this.多彩高亮格式刷1());
                 });
                 menu.addItem((item) => {
-                    item.setTitle("**==多彩高亮2==**");
+                    item.setTitle(t('menu.colorHighlight2'));
                     item.setIcon("普通格式刷");
                     item.setSection("highlight");
                     item.onClick(() =>this.多彩高亮格式刷2());
                 });
                 menu.addItem((item) => {
-                    item.setTitle("***==多彩高亮3==***");
+                    item.setTitle(t('menu.colorHighlight3'));
                     item.setIcon("普通格式刷");
                     item.setSection("highlight");
                     item.onClick(() =>this.多彩高亮格式刷3());
                 });
                 menu.addItem((item) => {
-                    item.setTitle("==~~涂黑~~==");
+                    item.setTitle(t('menu.blackout'));
                     item.setIcon("普通格式刷");
                     item.setSection("highlight");
                     item.onClick(() =>this.涂黑格式刷());
                 });
                 menu.addItem((item) => {
-                    item.setTitle("*==~~涂彩~~==*");
+                    item.setTitle(t('menu.colorMask'));
                     item.setIcon("普通格式刷");
                     item.setSection("highlight");
                     item.onClick(() =>this.涂彩格式刷());
                 });
                 menu.addItem((item) => {
-                    item.setTitle("*~~挖空~~*");
+                    item.setTitle(t('menu.cutout'));
                     item.setIcon("普通格式刷");
                     item.setSection("highlight");
                     item.onClick(() =>this.挖空格式刷());
@@ -1396,7 +1425,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         } catch (error) {
             console.error("Quick Editing：读取设置失败，已回退默认设置", error);
             this.settings = sanitizeSettings(null);
-            new obsidian.Notice("Quick Editing 设置读取失败，本次启动已使用默认设置");
+            new obsidian.Notice(t('notice.settingsLoadFailed'));
         }
     }
     async saveSettings() {
@@ -1442,7 +1471,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     应用文本转换(
         transform: (value: string) => string,
-        title = '全文转换',
+        title = t('preview.defaultTitle'),
         onApplied?: () => void,
         options: {
             handlesMarkdownContext?: boolean;
@@ -1483,7 +1512,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
         const summary = summarizeTransformation(before, after);
         if (summary.estimatedChanges === 0) {
-            this.在文档显示通知('没有发现需要修改的内容', 5_000, editorDocument);
+            this.在文档显示通知(t('preview.noChanges'), 5_000, editorDocument);
             return;
         }
         const applyWithUndoNotice = () => {
@@ -1492,22 +1521,22 @@ class QuickEditingPlugin extends obsidian.Plugin {
             const editorWindow = editorDocument.defaultView as ObsidianWindow | null;
             if (!editorWindow) {
                 this.在文档显示通知(
-                    `已完成 ${title}，预计修改 ${summary.estimatedChanges} 处。`,
+                    t('preview.done', { title, count: summary.estimatedChanges }),
                     10_000,
                     editorDocument,
                 );
                 return;
             }
             const fragment = editorWindow.createFragment();
-            fragment.append(`已完成 ${title}，预计修改 ${summary.estimatedChanges} 处。`);
-            const undoButton = fragment.createEl('button', { text: '撤销' });
+            fragment.append(t('preview.done', { title, count: summary.estimatedChanges }));
+            const undoButton = fragment.createEl('button', { text: t('preview.undo') });
             undoButton.addEventListener('click', () => editor.undo(), { once: true });
             this.在文档显示通知(fragment, 10_000, editorDocument);
         };
         if (!hasSelection && this.settings.previewFullDocumentChanges) {
             new TransformationPreviewModal(
                 this.app,
-                `${title}预览`,
+                t('preview.title', { title }),
                 summary,
                 applyWithUndoNotice,
             ).openInDocument(editorDocument);
@@ -1693,7 +1722,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
     滚动左窗(distance: number){
         const panes = this.获取双窗视图();
         if (!panes) {
-            new obsidian.Notice("请先执行「开右窗口预览」");
+            new obsidian.Notice(t('notice.openRightPreviewFirst'));
             return;
         }
         const leftEditor = panes.leftView.editor;
@@ -1820,7 +1849,9 @@ class QuickEditingPlugin extends obsidian.Plugin {
         };
         const converted = convertInternalLinkSelection(所选文本, sourcePath, services);
         this.替换所选文本(converted);
-        new obsidian.Notice(converted.startsWith('[[') ? '已生成解析后的内部链接' : '已移除内部链接语法');
+        new obsidian.Notice(converted.startsWith('[[')
+            ? t('notice.internalLinkCreated')
+            : t('notice.internalLinkRemoved'));
     };
 
     转换潜在链接() {
@@ -1833,7 +1864,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             : this.settings.linkWords.split(/\r?\n/);
         this.应用文本转换(
             (text) => linkPotentialTitles(text, titles).text,
-            '转换潜在链接',
+            t('transform.potentialLinks'),
         );
     };
 
@@ -1865,11 +1896,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isCTS){
                 isCTS = false;
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭粗体格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isCTS = true;
-                newNotice = new obsidian.Notice("**粗体格式刷** 已打开！\n首尾不要选中标点。",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpenedNoPunctuation', {
+                    name: t('menu.bold'),
+                }), 0);
             };
         };
     };
@@ -1880,7 +1913,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isGLS){
                 isGLS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭粗体格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("****", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -1912,11 +1945,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isGLS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭高亮格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isGLS = true;
-                newNotice = new obsidian.Notice("==高亮格式刷== 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.highlight'),
+                }), 0);
             }
         }
     }
@@ -1925,11 +1960,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isGLS1){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭多彩高亮刷1！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isGLS1 = true;
-                newNotice = new obsidian.Notice("*==多彩高亮刷1==*  已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.colorHighlight1'),
+                }), 0);
             }
         }
     }
@@ -1938,11 +1975,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isGLS2){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭彩高亮刷2！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isGLS2 = true;
-                newNotice = new obsidian.Notice("**==多彩高亮刷2==** 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.colorHighlight2'),
+                }), 0);
             }
         }
     }
@@ -1951,11 +1990,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isGLS3){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭多彩高亮刷3！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isGLS3 = true;
-                newNotice = new obsidian.Notice("***==多彩高亮刷3==*** 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.colorHighlight3'),
+                }), 0);
             }
         }
     }
@@ -1965,11 +2006,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isTHS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭涂黑格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isTHS = true;
-                newNotice = new obsidian.Notice("==~~涂黑~~==已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.blackout'),
+                }), 0);
             }
         }
     }
@@ -1978,11 +2021,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isTCS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭涂彩格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isTCS = true;
-                newNotice = new obsidian.Notice("*==~~涂彩~~==* 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.colorMask'),
+                }), 0);
             }
         }
     }
@@ -1991,11 +2036,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isWKS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭挖空格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isWKS = true;
-                newNotice = new obsidian.Notice("*~~挖空~~* 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.cutout'),
+                }), 0);
             }
         }
     }
@@ -2007,7 +2054,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isGLS){
                 isGLS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭高亮格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("====", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2035,7 +2082,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isGLS1){
                 isGLS1 = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭高亮格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("*====*", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2072,7 +2119,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
              if(isGLS2){
                 isGLS2 = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭高亮格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("**====**", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2110,7 +2157,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
              if(isGLS2){
                 isGLS2 = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭高亮格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("***====***", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2149,7 +2196,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
              if(isTHS){
                 isTHS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭涂黑格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("==~~~~==", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2179,7 +2226,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
              if(isTCS){
                 isTCS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭涂彩格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange(" *==~~~~==* ", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2218,7 +2265,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
              if(isWKS){
                 isWKS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭挖空格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange(" *~~~~* ", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2254,11 +2301,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isXTS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isXTS = true;
-                newNotice = new obsidian.Notice("*斜体格式刷* 已打开！\n首尾不要选中标点。",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpenedNoPunctuation', {
+                    name: t('menu.italic'),
+                }), 0);
             }
         };
     };
@@ -2268,7 +2317,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isXTS){
                 isXTS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭斜体格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("**", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2294,11 +2343,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isSCS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭删除线格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isSCS = true;
-                newNotice = new obsidian.Notice("~~删除线格式刷~~ 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.strikethrough'),
+                }), 0);
             }
         }
     };
@@ -2308,7 +2359,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isSCS){
                 isSCS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭删除线格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("~~~~", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2336,11 +2387,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isXHS){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭下划线格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isXHS = true;
-                newNotice = new obsidian.Notice("<u>下划线格式刷</u> 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: '_Underline_',
+                }), 0);
             }
         }
     };
@@ -2351,7 +2404,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isXHS){
                 isXHS = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭下划线格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("<u></u>", 当前光标, 当前光标);
             编辑模式.exec("goRight");
@@ -2403,11 +2456,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isSB){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭上标格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isSB = true;
-                newNotice = new obsidian.Notice("<sup>上标格式刷</sup> 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.superscript'),
+                }), 0);
             }
         }
     };
@@ -2417,7 +2472,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isSB){
                 isSB = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭上标格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("<sup></sup>", 当前光标, 当前光标);
             编辑模式.setCursor({line:当前行号,ch:Number(当前光标.ch+5)});
@@ -2444,11 +2499,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isXB){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭下标格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isXB = true;
-                newNotice = new obsidian.Notice("<sub>下标格式刷</sub> 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.subscript'),
+                }), 0);
             }
         }
     };
@@ -2458,7 +2515,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(isXB){
                 isXB = false;
                 newNotice?.hide();
-                new obsidian.Notice("已关闭下标格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }
             笔记全文.replaceRange("<sub></sub>", 当前光标, 当前光标);
             编辑模式.setCursor({line:当前行号,ch:Number(当前光标.ch+5)});
@@ -2494,10 +2551,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
             if(link.test(笔记正文)){
                 cs = 笔记正文.match(link) ?? [];
                 clinks = cs.toString().replace(/\{\{c/ig,"").replace(/::[^}]+\}\}/ig,"");
-                new obsidian.Notice(clinks);
                 //lastId = Number(clinks.split(",").sort().pop())+1;
                 lastId = Number(clinks.split(",").sort((a, b) => Number(a) - Number(b)).pop()) + 1;
-                new obsidian.Notice(String(lastId));
             }
             所选文本 = 所选文本.replace(/^(.+)$/m,"{{c"+lastId+"::$1}}");
         }
@@ -2553,7 +2608,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if (!this.获取编辑器信息()) return;
         const cursorOffset = 编辑模式.posToOffset(当前光标);
         if (isMarkdownOffsetProtected(笔记正文, cursorOffset)) {
-            new obsidian.Notice('当前位置位于代码、frontmatter、公式或链接中，未执行智能符号转换');
+            new obsidian.Notice(t('notice.protectedContext'));
             return;
         }
         let 转换文本 = "";
@@ -2663,7 +2718,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 );
                 if(calloutPattern.test(选至行首)){
                     let calloutStr = ">[!"+oneStr+"■]▲ " + String.fromCharCode(10) + ">";
-                    new obsidian.Notice("符合表达式，可以转换！");
+                    new obsidian.Notice(t('notice.expressionConvertible'));
                     if(/\s([左l]|left)(?=[+-]|$)/i.test(选至行首)){
                         calloutStr = calloutStr.replace("■"," left");
                     }else if(/\s([中c]|center)(?=[+-]|$)/i.test(选至行首)){
@@ -2732,7 +2787,9 @@ class QuickEditingPlugin extends obsidian.Plugin {
         this.关闭格式刷();
         isCTxt = true;
         this.settings.hColor = _color;
-        newNotice = new obsidian.Notice("多彩文字格式刷 已打开！",0);
+        newNotice = new obsidian.Notice(t('notice.brushOpened', {
+            name: t('settings.textColor', { index: '' }),
+        }), 0);
     }
 
     转换文字颜色() {
@@ -2764,7 +2821,9 @@ class QuickEditingPlugin extends obsidian.Plugin {
         this.关闭格式刷();
         isBgC = true;
         this.settings.bColor = _color;
-        newNotice = new obsidian.Notice("多彩背景格式刷 已打开！",0);
+        newNotice = new obsidian.Notice(t('notice.brushOpened', {
+            name: t('settings.backgroundColor', { index: '' }),
+        }), 0);
     }
     转换背景颜色() {
         if (!this.获取编辑器信息()) return;
@@ -2794,11 +2853,13 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             if(isText){
                 this.关闭格式刷();
-                new obsidian.Notice("已关闭格式刷！");
+                new obsidian.Notice(t('notice.brushClosed'));
             }else{
                 this.关闭格式刷();
                 isText = true;
-                newNotice = new obsidian.Notice("纯文本格式刷 已打开！",0);
+                newNotice = new obsidian.Notice(t('notice.brushOpened', {
+                    name: t('menu.plainText'),
+                }), 0);
                 //new obsidian.Notice("请先划选部分文本，再执行命令！");
                 let reg1 = /(~~|%%|\*==|==|\*\*?|<[^<>]*?>|!?\[\[*|`|_|!?\[)([^!#=[\]<>`_*~()]*)$/;
                 let reg2 = /^([^!=[\]<>`_*~()]*)(~~|%%|==\*|==|\*\*?|<[^<>]*>|\]\]|`|_|\]\([^()[\]]*\))/;
@@ -2852,7 +2913,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
     删除图片链接() {
         this.应用文本转换(
             removeImageLinks,
-            '删除图片链接',
+            t('transform.removeImageLinks'),
             undefined,
             {
                 handlesMarkdownContext: true,
@@ -2972,7 +3033,9 @@ class QuickEditingPlugin extends obsidian.Plugin {
             let time1 = date1.getTime();
             let time2 = date2.valueOf();
 
-            new obsidian.Notice("当前任务用时 "+Number((time2-time1)/1000)+" 秒");
+            new obsidian.Notice(t('notice.elapsedSeconds', {
+                seconds: Number((time2 - time1) / 1_000),
+            }));
         }
 
     }
@@ -3022,7 +3085,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         const newBaseName = 所选文本.trim();
         if (!file || newBaseName === "") return;
         if (/[\\/:*?"<>|]/.test(newBaseName) || newBaseName === "." || newBaseName === "..") {
-            new obsidian.Notice("文件名包含不允许的字符");
+            new obsidian.Notice(t('notice.invalidFileName'));
             return;
         }
 
@@ -3033,7 +3096,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         );
         const existing = this.app.vault.getAbstractFileByPath(newPath);
         if (existing && existing !== file) {
-            new obsidian.Notice("同名文件已存在，未执行重命名");
+            new obsidian.Notice(t('notice.duplicateFileName'));
             return;
         }
 
@@ -3041,7 +3104,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             await this.app.fileManager.renameFile(file, newPath);
         } catch (error) {
             console.error("Quick Editing：重命名文件失败", error);
-            new obsidian.Notice("重命名失败，请查看开发者控制台");
+            new obsidian.Notice(t('notice.renameFailed'));
         }
     };
 
@@ -3051,35 +3114,39 @@ class QuickEditingPlugin extends obsidian.Plugin {
         const originalSelection = 所选文本;
         try {
             const clipboardText = await navigator.clipboard.readText();
-            const result = transformClipboardText(clipboardText, originalSelection);
+            const result = transformClipboardText(
+                clipboardText,
+                originalSelection,
+                this.smartPasteLabels(),
+            );
             if (result.kind === 'empty') {
-                new obsidian.Notice("剪贴板中没有可粘贴的文本");
+                new obsidian.Notice(t('notice.emptyClipboard'));
                 return;
             }
             if (this.获取编辑模式() !== originalEditor) {
-                new obsidian.Notice("活动笔记已经改变，已取消粘贴");
+                new obsidian.Notice(t('notice.activeNoteChanged'));
                 return;
             }
             originalEditor.replaceSelection(result.text);
             const messages = {
-                'media-url': "剪贴板网址已转为 Markdown 嵌入语法",
-                url: "剪贴板网址已转为 Markdown 链接",
-                'media-path': "本地媒体路径已转为 Markdown 嵌入语法",
-                path: "本地路径已转为 Markdown 链接",
-                table: "制表符数据已转为 Markdown 表格",
-                code: "剪贴板文本已转为代码块",
+                'media-url': t('notice.smartPasteMediaUrl'),
+                url: t('notice.smartPasteUrl'),
+                'media-path': t('notice.smartPasteMediaPath'),
+                path: t('notice.smartPastePath'),
+                table: t('notice.smartPasteTable'),
+                code: t('notice.smartPasteCode'),
             };
             new obsidian.Notice(messages[result.kind]);
         } catch (error) {
             console.error("Quick Editing：读取剪贴板失败", error);
-            new obsidian.Notice("无法读取剪贴板，请检查系统权限");
+            new obsidian.Notice(t('notice.clipboardReadFailed'));
         }
     };
 
     async 图文粘贴() {
         if (!this.获取编辑器信息()) return;
         if (typeof navigator.clipboard.read !== 'function') {
-            new obsidian.Notice("当前环境不支持读取富文本剪贴板");
+            new obsidian.Notice(t('notice.richClipboardUnsupported'));
             return;
         }
         const originalEditor = 编辑模式;
@@ -3087,44 +3154,57 @@ class QuickEditingPlugin extends obsidian.Plugin {
             const items = await navigator.clipboard.read();
             const htmlItem = items.find((item) => item.types.includes('text/html'));
             if (!htmlItem) {
-                new obsidian.Notice("剪贴板中没有 HTML 富文本");
+                new obsidian.Notice(t('notice.noHtmlClipboard'));
                 return;
             }
             const blob = await htmlItem.getType('text/html');
-            const markdown = htmlToMarkdown(await blob.text());
+            const markdown = htmlToMarkdown(await blob.text(), undefined, t('output.image'));
             if (markdown === '') {
-                new obsidian.Notice("富文本中没有可转换的内容");
+                new obsidian.Notice(t('notice.noConvertibleHtml'));
                 return;
             }
             if (this.获取编辑模式() !== originalEditor) {
-                new obsidian.Notice("活动笔记已经改变，已取消粘贴");
+                new obsidian.Notice(t('notice.activeNoteChanged'));
                 return;
             }
             originalEditor.replaceSelection(markdown);
-            new obsidian.Notice("HTML 富文本已转为 Markdown");
+            new obsidian.Notice(t('notice.richTextConverted'));
         } catch (error) {
             console.error("Quick Editing：读取富文本剪贴板失败", error);
-            new obsidian.Notice("无法读取富文本剪贴板，请检查系统权限");
+            new obsidian.Notice(t('notice.richClipboardReadFailed'));
         }
     }
 
     计算所选结果() {
         if (!this.获取编辑器信息()) return;
         if (!/\d/.test(所选文本)) {
-            new obsidian.Notice("数了数，您划选了"+所选文本.length+"个字符！");
+            new obsidian.Notice(t('notice.selectionCharacters', { count: 所选文本.length }));
             return;
         }
 
         try {
             const 结果 = evaluateArithmetic(所选文本);
-            new obsidian.Notice(所选文本+"="+结果+"\n结果已写入剪贴板！");
+            new obsidian.Notice(t('notice.calculationCopied', {
+                expression: 所选文本,
+                result: String(结果),
+            }));
             void navigator.clipboard.writeText(String(结果)).catch((error) => {
                 console.error("Quick Editing：写入剪贴板失败", error);
-                new obsidian.Notice("计算成功，但写入剪贴板失败");
+                new obsidian.Notice(t('notice.calculationClipboardFailed'));
             });
         } catch (error) {
-            const message = error instanceof Error ? error.message : "表达式无效";
-            new obsidian.Notice("无法计算："+message);
+            const errorKeys: Record<ArithmeticErrorCode, MessageKey> = {
+                numberRequired: 'error.arithmetic.numberRequired',
+                missingClosingParenthesis: 'error.arithmetic.missingClosingParenthesis',
+                divisionByZero: 'error.arithmetic.divisionByZero',
+                emptyExpression: 'error.arithmetic.emptyExpression',
+                unsupportedCharacter: 'error.arithmetic.unsupportedCharacter',
+                nonFiniteResult: 'error.arithmetic.nonFiniteResult',
+            };
+            const message = error instanceof ArithmeticEvaluationError
+                ? t(errorKeys[error.code])
+                : t('error.arithmetic.unknown');
+            new obsidian.Notice(t('notice.calculationFailed', { message }));
         }
     }
 
@@ -3132,7 +3212,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         let _linkTxt = "";
         const searchView = this.app.workspace.getLeavesOfType('search')[0]?.view;
         if (!searchView) {
-            new obsidian.Notice("请先执行搜索操作...");
+            new obsidian.Notice(t('notice.searchFirst'));
             return;
         }
         // Obsidian does not currently expose global-search results as public data.
@@ -3145,17 +3225,17 @@ class QuickEditingPlugin extends obsidian.Plugin {
             .map((path) => this.app.vault.getFileByPath(path))
             .filter((file): file is obsidian.TFile => file?.extension === 'md');
         if (!markdownFiles.length) {
-            new obsidian.Notice("当前搜索视图中没有可读取的 Markdown 结果");
+            new obsidian.Notice(t('notice.noSearchResults'));
             return;
         }
         for (const file of markdownFiles) {
             _linkTxt +=  "[["+file.basename+"]]\n"
         }
         void navigator.clipboard.writeText(_linkTxt).then(() => {
-            new obsidian.Notice("搜索结果已写入剪贴板！\n请执行粘贴操作...");
+            new obsidian.Notice(t('notice.searchResultsCopied'));
         }).catch((error) => {
             console.error("Quick Editing：写入搜索结果失败", error);
-            new obsidian.Notice("读取成功，但写入剪贴板失败");
+            new obsidian.Notice(t('notice.clipboardWriteFailed'));
         });
     };
 
@@ -3164,27 +3244,27 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if (!笔记正文) return;
         let tmp = 笔记正文.replace(/^(?!#+ |#注释|#标注|#批注|#反思|#备注|.*==|.*%%).*$|^[^#\n%=]*(==|%%)|(==|%%)[^\n%=]*$|(==|%%)[^\n%=]*(==|%%)/mg,"\n");
         tmp = tmp.replace(/[\r\n|\n]+/g,"\n")
-        new obsidian.Notice("已成功获取标注类文本，可以粘贴！");
+        new obsidian.Notice(t('notice.annotationsCopied'));
         void navigator.clipboard.writeText(tmp).catch((error) => {
             console.error("Quick Editing：写入标注文本失败", error);
-            new obsidian.Notice("获取成功，但写入剪贴板失败");
+            new obsidian.Notice(t('notice.clipboardWriteFailed'));
         });
     };
 
     获取无语法文本() {
         if (!this.获取编辑器信息()) return;
         if(所选文本 == ""){
-            new obsidian.Notice("请先划选部分文本，再执行命令！");
+            new obsidian.Notice(t('notice.selectTextFirst'));
         }else{
             let mdText = /(^#+\s|(?<=^|\s*)#|^>|^- \[( |x)\]|^\+ |<[^<>]+>|^1\. |^-+$|^\*+$|==|\*+|~~|```|!*\[\[|\]\])/mg;
             所选文本 = 所选文本.replace(/\[([^[\]]*)\]\([^()]+\)/img,"$1");
             所选文本 = 所选文本.replace(mdText,"");
             所选文本 = 所选文本.replace(/^[ ]+|[ ]+$/mg,"");
             所选文本 = 所选文本.replace(/(\r\n|\n)+/mg,"\n");
-            new obsidian.Notice("已成功获取无语法文本，可以粘贴！");
+            new obsidian.Notice(t('notice.plainTextCopied'));
             void navigator.clipboard.writeText(所选文本).catch((error) => {
                 console.error("Quick Editing：写入纯文本失败", error);
-                new obsidian.Notice("获取成功，但写入剪贴板失败");
+                new obsidian.Notice(t('notice.clipboardWriteFailed'));
             });
         }
     };
@@ -3192,54 +3272,57 @@ class QuickEditingPlugin extends obsidian.Plugin {
     获取当前字数() {
         if (!this.获取编辑器信息()) return;
         if (!笔记正文) return;
-        let showTip1 = "";
-        let showTip2 = "";
+        const visibleStats: string[] = [];
+        const invisibleStats: string[] = [];
 
         let 可见字符 = 笔记正文.match(/[^\s\t\r\n]/g);
         if(可见字符){
-            showTip1 += "\n可见字符 "+可见字符.length;
+            visibleStats.push(t('stats.visibleCharacters', { count: 可见字符.length }));
 
             let 汉字个数 = 笔记正文.match(/[一-龥]/g);
             if(汉字个数){
-                showTip1 += "\n- 汉字 "+汉字个数.length;
+                visibleStats.push(`- ${t('stats.chineseCharacters', { count: 汉字个数.length })}`);
             }
 
             let 字母个数 = 笔记正文.match(/[a-z]/ig);
             if(字母个数){
-                showTip1 += "\n- 字母 "+字母个数.length;
+                visibleStats.push(`- ${t('stats.letters', { count: 字母个数.length })}`);
             }
 
             let 数字个数 = 笔记正文.match(/\d/ig);
             if(数字个数){
-                showTip1 += "\n- 数字 "+数字个数.length;
+                visibleStats.push(`- ${t('stats.digits', { count: 数字个数.length })}`);
             }
 
             let 标点个数 = 笔记正文.match(/[,，.。\\、/?？!！:：;；—【】（）{}《》#&@$^“”‘’'"\][()—…]/ig);
             if(标点个数){
-                showTip1 += "\n- 标点 "+标点个数.length;
+                visibleStats.push(`- ${t('stats.punctuation', { count: 标点个数.length })}`);
             }
         }else{
-            showTip1 = "\n0 个可见字符";
+            visibleStats.push(t('stats.noVisibleCharacters'));
         }
 
         let 不可见字符 = 笔记正文.match(/[\s\t\r\n]/g);
         if(不可见字符){
-            showTip2 += "\n不可见字符 "+不可见字符.length;
+            invisibleStats.push(t('stats.invisibleCharacters', { count: 不可见字符.length }));
 
             let 空格个数 = 笔记正文.match(/[ \u3000\t]/g);
             if(空格个数){
-                showTip2 += "\n- 空格 "+空格个数.length;
+                invisibleStats.push(`- ${t('stats.spaces', { count: 空格个数.length })}`);
             }
 
             let 换行个数 = 笔记正文.match(/\r*\n/g);
             if(换行个数){
-                showTip2 += "\n- 换行 "+换行个数.length;
+                invisibleStats.push(`- ${t('stats.lineBreaks', { count: 换行个数.length })}`);
             }
         }else{
-            showTip2 = "\n0 个不可见字符";
+            invisibleStats.push(t('stats.noInvisibleCharacters'));
         }
 
-         new obsidian.Notice("当前笔记含有:"+showTip1+"\n"+showTip2,0);
+         new obsidian.Notice(t('notice.wordCount', {
+             visible: visibleStats.join('\n'),
+             invisible: invisibleStats.join('\n'),
+         }), 0);
     };
 
     嵌入当前网址页面 () {
@@ -3263,7 +3346,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             笔记全文.replaceRange(基本格式, {line:当前行号,ch:当前行文本.length},{line:当前行号,ch:当前行文本.length});
             编辑模式.exec("goRight");
         }else{
-            new obsidian.Notice("所选文本不符合网址格式，无法嵌入！");
+            new obsidian.Notice(t('notice.invalidUrl'));
         }
     };
 
@@ -3306,7 +3389,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 主要语法 = 主要语法 + "↵"+ 行语法;
             }
         }
-        let 输出语法 = "%%此图示由列表文本转换而成！%%↵"+主要语法
+        let 输出语法 = `%%${t('output.diagramComment')}%%↵`+主要语法
         //编辑模式.setCursor({line:0,ch:0});
         //笔记正文 = this.获取笔记正文();
         编辑模式.exec("goRight");
@@ -3322,7 +3405,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             新正文 = 新正文.replace(/↵/g,"\n");
             this.替换笔记正文 (新正文);
         }else{
-            new obsidian.Notice("列表文本已转为MerMaid语法。\n可以粘贴！");
+            new obsidian.Notice(t('notice.listDiagramCopied'));
             输出语法 = 输出语法.replace(/↵/g,"\n");
             navigator.clipboard.writeText("```mermaid\ngraph TD\n"+输出语法+"\n```\n");
         };
@@ -3553,21 +3636,21 @@ class QuickEditingPlugin extends obsidian.Plugin {
     批量插入空行() {
         this.应用文本转换(
             (text) => text.replace(/(?<!^(\s*- |\s*[0-9]+\.|\s*>|\n)[^\n]*)\n(?!(\s*- |\s*[0-9]+\.|\s*>|\n))/g, '$1\n\n'),
-            '批量插入空行',
+            t('transform.insertBlankLines'),
         );
     };
 
     批量去除空行() {
         this.应用文本转换(
             (text) => text.replace(/(^\s*\n|\r\n|\n)[\t\s]*(\r\n|\n)/g, '\n'),
-            '批量去除空行',
+            t('transform.removeBlankLines'),
         );
     };
 
     空格转为空行() {
         this.应用文本转换(
             (text) => text.replace(/(?<=[一-龥。？！])[\t\s](?=[一-龥])/g, '\n'),
-            '空格转为空行',
+            t('transform.spacesToBlankLines'),
         );
     };
 
@@ -3580,7 +3663,9 @@ class QuickEditingPlugin extends obsidian.Plugin {
                     ? withoutIndent.replace(/^(?!(\s*\d+\.\s|\s*-\.\s|[\n\s>#]+|```|---|\|[^|]|\*\*\*))/gm, '\u200C\u200C\u200C\u200C\u3000\u3000')
                     : withoutIndent;
             },
-            shouldAddIndent ? '全文首行缩进' : '取消全文首行缩进',
+            shouldAddIndent
+                ? t('transform.addFirstLineIndent')
+                : t('transform.removeFirstLineIndent'),
             () => { isIndent = !shouldAddIndent; },
         );
     };
@@ -3610,14 +3695,14 @@ class QuickEditingPlugin extends obsidian.Plugin {
     行首添加空格() {
         this.应用文本转换(
             (text) => text.replace(/(?<=(^|\n))(?!(---|\*\*\*|\s))/g, '  '),
-            '行首添加空格',
+            t('transform.addLeadingSpaces'),
         );
     };
 
     去除行首空格() {
         this.应用文本转换(
             (text) => text.replace(/(?<=(^|\n))[\t \u3000]+/g, ''),
-            '去除行首空格',
+            t('transform.removeLeadingSpaces'),
         );
     };
 
@@ -3627,12 +3712,12 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 /(?<!(---|\*\*\*|\s\s))\n/g,
                 '  ' + String.fromCharCode(10),
             ),
-            '末尾追加空格',
+            t('transform.addTrailingSpaces'),
         );
     };
 
     去除末尾空格() {
-        this.应用文本转换(trimTrailingWhitespace, '去除末尾空格');
+        this.应用文本转换(trimTrailingWhitespace, t('transform.removeTrailingSpaces'));
     };
 
     上方插入空行() {
@@ -3651,15 +3736,15 @@ class QuickEditingPlugin extends obsidian.Plugin {
     };
 
     添加间隔空格() {
-        this.应用文本转换(addCjkLatinSpacing, '添加中英文间隔空格');
+        this.应用文本转换(addCjkLatinSpacing, t('transform.addCjkSpacing'));
     };
 
     去除所有空格() {
-        this.应用文本转换(removeHorizontalSpaces, '去除所有横向空格');
+        this.应用文本转换(removeHorizontalSpaces, t('transform.removeHorizontalSpaces'));
     };
 
     去除所有注释() {
-        this.应用文本转换(removeInlineComments, '去除行内注释');
+        this.应用文本转换(removeInlineComments, t('transform.removeInlineComments'));
     };
 
     /* 此功能暂未启用。*/
@@ -3678,12 +3763,12 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if (!file || !view) return;
         const query = "path:"+file.basename+" /"+view.editor.getSelection();
         if (!executeCoreCommand(this.app, 'global-search:open')) {
-            new obsidian.Notice("无法打开全局搜索");
+            new obsidian.Notice(t('notice.globalSearchFailed'));
             return;
         }
         const searchLeaf = this.app.workspace.getLeavesOfType('search')[0];
         if (!searchLeaf) {
-            new obsidian.Notice("无法打开全局搜索");
+            new obsidian.Notice(t('notice.globalSearchFailed'));
             return;
         }
         const currentState = searchLeaf.getViewState();
@@ -3694,19 +3779,19 @@ class QuickEditingPlugin extends obsidian.Plugin {
     };
 
     修复外来文本(){
-        this.应用文本转换(repairExternalText, '修复外来文本');
+        this.应用文本转换(repairExternalText, t('transform.repairImportedText'));
     }
 
     修复意外断行() {
-        this.应用文本转换(repairUnexpectedLineBreaks, '修复意外断行');
+        this.应用文本转换(repairUnexpectedLineBreaks, t('transform.repairLineBreaks'));
     };
 
     修复错误语法() {
-        this.应用文本转换(repairMarkdownSyntax, '修复 Markdown 语法');
+        this.应用文本转换(repairMarkdownSyntax, t('transform.repairMarkdown'));
     };
 
     修复错误标点() {
-        this.应用文本转换(normalizeMixedPunctuation, '规范中英文标点');
+        this.应用文本转换(normalizeMixedPunctuation, t('transform.normalizePunctuation'));
     };
 
     修替断行(_str: string): string {
@@ -3723,7 +3808,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){return};
         const convertedPath = convertWindowsPathSyntax(所选文本);
         if (convertedPath === null) {
-            new obsidian.Notice("您划选的路径格式不正确！");
+            new obsidian.Notice(t('notice.invalidPath'));
             return;
         }
         this.替换所选文本(convertedPath);
@@ -3776,6 +3861,47 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
         this.plugin = plugin;
     }
 
+    getSettingDefinitions(): obsidian.SettingDefinitionItem[] {
+        return createQuickEditingSettingDefinitions(this.plugin);
+    }
+
+    getControlValue(key: string): unknown {
+        if (key.startsWith('featureGroups.')) {
+            const featureKey = key.slice('featureGroups.'.length) as keyof QuickEditingSettings['featureGroups'];
+            return this.plugin.settings.featureGroups[featureKey];
+        }
+        if (key.startsWith('commandEnabled.')) {
+            const commandId = key.slice('commandEnabled.'.length);
+            return this.plugin.isCommandEnabled(commandId);
+        }
+        return (this.plugin.settings as unknown as Record<string, unknown>)[key];
+    }
+
+    async setControlValue(key: string, value: unknown): Promise<void> {
+        let needsReloadNotice = false;
+        if (key.startsWith('featureGroups.')) {
+            const featureKey = key.slice('featureGroups.'.length) as keyof QuickEditingSettings['featureGroups'];
+            if (typeof value !== 'boolean') return;
+            this.plugin.settings.featureGroups[featureKey] = value;
+            needsReloadNotice = true;
+        } else if (key.startsWith('commandEnabled.')) {
+            if (typeof value !== 'boolean') return;
+            const commandId = key.slice('commandEnabled.'.length);
+            this.plugin.settings.commandEnabled[commandId] = value;
+            needsReloadNotice = true;
+        } else {
+            const settings = this.plugin.settings as unknown as Record<string, unknown>;
+            settings[key] = value;
+        }
+        this.plugin.settings = sanitizeSettings(this.plugin.settings);
+        await this.plugin.saveSettings();
+        if (needsReloadNotice) {
+            new obsidian.Notice(t(key.startsWith('featureGroups.')
+                ? 'settings.featureSaved'
+                : 'settings.commandSaved'));
+        }
+    }
+
     display(): void {
         const { containerEl, plugin } = this;
         containerEl.empty();
@@ -3795,22 +3921,22 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
             text: `V${当前版本}`,
         });
         heroCopy.createEl('p', {
-            text: '专注于 obsidian 核心之外的安全 markdown 转换、智能粘贴与批量编辑。',
+            text: t('settings.heroDescription'),
         });
 
         renderModernSettings(containerEl, plugin);
 
         const linkSection = createSettingsSection(
             containerEl,
-            '内部链接',
-            '控制潜在链接批量转换时优先匹配的标题。',
+            t('settings.internalLinksSection'),
+            t('settings.internalLinksDescription'),
         );
         const linkSetting = new obsidian.Setting(linkSection)
-            .setName('潜在链接标题')
-            .setDesc('每行一个优先匹配标题；留空时使用库内笔记标题。转换会保护代码、公式、frontmatter、现有链接和注释。')
+            .setName(t('settings.potentialTitles'))
+            .setDesc(t('settings.potentialTitlesDescription'))
             .addTextArea((text) => {
                 text
-                    .setPlaceholder('每行一个标题')
+                    .setPlaceholder(t('settings.potentialTitlesPlaceholder'))
                     .setValue(plugin.settings.linkWords)
                     .onChange(async (value) => {
                         plugin.settings.linkWords = value;
@@ -3823,21 +3949,21 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
 
         const colorSection = createSettingsSection(
             containerEl,
-            '格式刷配色',
-            '自定义五组文字颜色与背景颜色；颜色会同步用于格式刷入口。',
+            t('settings.colorsSection'),
+            t('settings.colorsDescription'),
         );
         const colorGrid = colorSection.createDiv({ cls: 'quick-editing-color-grid' });
         const colorSettings = [
-            { key: 'hColor1', name: '文字 1' },
-            { key: 'hColor2', name: '文字 2' },
-            { key: 'hColor3', name: '文字 3' },
-            { key: 'hColor4', name: '文字 4' },
-            { key: 'hColor5', name: '文字 5' },
-            { key: 'bColor1', name: '背景 1' },
-            { key: 'bColor2', name: '背景 2' },
-            { key: 'bColor3', name: '背景 3' },
-            { key: 'bColor4', name: '背景 4' },
-            { key: 'bColor5', name: '背景 5' },
+            { key: 'hColor1', name: t('settings.textColor', { index: 1 }) },
+            { key: 'hColor2', name: t('settings.textColor', { index: 2 }) },
+            { key: 'hColor3', name: t('settings.textColor', { index: 3 }) },
+            { key: 'hColor4', name: t('settings.textColor', { index: 4 }) },
+            { key: 'hColor5', name: t('settings.textColor', { index: 5 }) },
+            { key: 'bColor1', name: t('settings.backgroundColor', { index: 1 }) },
+            { key: 'bColor2', name: t('settings.backgroundColor', { index: 2 }) },
+            { key: 'bColor3', name: t('settings.backgroundColor', { index: 3 }) },
+            { key: 'bColor4', name: t('settings.backgroundColor', { index: 4 }) },
+            { key: 'bColor5', name: t('settings.backgroundColor', { index: 5 }) },
         ] as const;
         for (const colorSetting of colorSettings) {
             const setting = new obsidian.Setting(colorGrid)
@@ -3853,12 +3979,12 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
 
         const windowSection = createSettingsSection(
             containerEl,
-            '双窗辅助',
-            '调整联动阅读时的滚动步长。',
+            t('settings.dualWindowSection'),
+            t('settings.dualWindowDescription'),
         );
         const scrollSetting = new obsidian.Setting(windowSection)
-            .setName('左侧窗口滚动幅度')
-            .setDesc('用于“左窗向上滚动”和“左窗向下滚动”命令。')
+            .setName(t('settings.leftWindowScroll'))
+            .setDesc(t('settings.leftWindowScrollDescription'))
             .addSlider((slider) => slider
                 .setLimits(25, 900, 25)
                 .setValue(plugin.settings.maxScroll)
@@ -3872,9 +3998,9 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
         const coreNoteIcon = coreNote.createDiv({ cls: 'quick-editing-core-note-icon' });
         obsidian.setIcon(coreNoteIcon, 'info');
         const coreNoteCopy = coreNote.createDiv();
-        coreNoteCopy.createEl('strong', { text: '核心能力分工' });
+        coreNoteCopy.createEl('strong', { text: t('settings.coreDivision') });
         coreNoteCopy.createEl('p', {
-            text: '标题、基础格式、callout、列表、代码块、视图切换、段落删除和路径复制均直接使用 obsidian 核心命令。',
+            text: t('settings.coreDivisionDescription'),
         });
     }
 }

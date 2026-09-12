@@ -21,6 +21,8 @@ artifact and must not be committed.
 - Add or update unit tests for pure text transformations.
 - Preserve protected Markdown contexts such as frontmatter, code, math, links,
   images, HTML, and Obsidian comments.
+- Put user-visible text behind locale keys and update both the English and
+  Simplified Chinese locale bundles.
 - Use Obsidian's public APIs and multi-window-safe document references.
 - Do not register default hotkeys; users assign shortcuts in Obsidian settings.
 - Run `npm run check` before submitting.

@@ -14,6 +14,22 @@ test('converts regular and media URLs with an optional selected label', () => {
   });
 });
 
+test('uses locale-provided fallback labels for generated Markdown', () => {
+  const labels = { image: 'Image', link: 'Link', local: 'Local' };
+  assert.equal(
+    transformClipboardText('https://example.com', '', labels).text,
+    '[Link](https://example.com)',
+  );
+  assert.equal(
+    transformClipboardText('https://example.com/cover.png', '', labels).text,
+    '![Image](https://example.com/cover.png)',
+  );
+  assert.equal(
+    transformClipboardText('C:\\notes\\draft.md', '', labels).text,
+    '[Local](file:///C:/notes/draft.md)',
+  );
+});
+
 test('converts Windows paths without treating arbitrary text as a path', () => {
   assert.deepEqual(transformClipboardText('C:\\notes\\draft.md'), {
     kind: 'path',

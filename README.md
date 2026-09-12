@@ -21,10 +21,20 @@ with attribution and public upstream authorization recorded in
 - Syntax-tree-aware Markdown transformations with previews and undo notices.
 - ClipboardEvent-based rich-text paste and DOM-based HTML table conversion.
 - MetadataCache-aware internal links generated through Obsidian's link API.
-- Searchable settings, per-command switches, and multi-window support.
+- Searchable settings, per-command switches, and multi-window support. On
+  Obsidian 1.13 and later, settings also participate in the global Settings
+  search; older supported versions keep the classic plugin settings page.
 - One-click removal of image links without deleting attachment files.
 - Configured text and highlighter colors shown directly in the status bar
   format-brush menu for quick visual selection.
+
+## Language support
+
+Quick Editing follows Obsidian's current language through the official
+`getLanguage()` API. Chinese language variants use Simplified Chinese; every
+other locale falls back to English. Command names, menus, settings, previews,
+notices, error details, and generated fallback labels are localized. Both
+Chinese and English command names remain searchable in the plugin settings.
 
 ## Usage
 
@@ -60,14 +70,13 @@ only changes Markdown content after a preview.
 
 Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件。它提供智能符号、格式刷、智能粘贴、内部链接、文本清理、空格与空行整理等高频操作，并为批量修改加入 Markdown 上下文保护、变更预览和撤销入口。
 
-- 当前版本：`1.0.4`
+- 当前版本：`1.0.5`
 - Obsidian 最低版本：`1.8.7`
 - 支持平台：桌面端
-- 实机验证：macOS、Obsidian `1.13.4`
+- 实机验证：macOS、Obsidian `1.13.7`
 - 插件 ID：`quick-editing`
 
 Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-canzi/Enhanced-editing](https://github.com/obsidian-canzi/Enhanced-editing) 继续维护。项目已更名并使用新的插件 ID，不会覆盖旧版“增强编辑”的安装目录。
-
 
 ## 功能组
 
@@ -88,6 +97,8 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 - 文本整理：中英文标点、外来文本、错误语法、意外断行、注释、简繁转换和路径格式。
 - 辅助操作：计算选区、提取标注、修改文件名、搜索选区和列表转图示。
 - 状态栏格式刷：文字颜色 1–5 与荧光笔 1–5 会直接显示对应色块；即使 macOS 启用原生菜单，也会使用可显示颜色的 Obsidian 菜单。
+- 中英文界面：插件通过 Obsidian 官方 `getLanguage()` API 自动跟随语言；中文语言变体显示简体中文，其他语言回退为英文。命令、菜单、设置、预览、通知和自动生成的默认标签均已本地化，中英文命令名都可以被搜索。
+- 新版设置：Obsidian 1.13 及以上使用可被全局设置搜索发现的声明式设置；最低兼容版本仍保留原有设置页面。
 
 ## 快捷键配置
 

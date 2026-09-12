@@ -14,6 +14,18 @@ export interface SmartPasteResult {
   text: string;
 }
 
+export interface SmartPasteLabels {
+  image: string;
+  link: string;
+  local: string;
+}
+
+const DEFAULT_LABELS: SmartPasteLabels = {
+  image: '图片',
+  link: '链接',
+  local: '本地',
+};
+
 const MEDIA_EXTENSION = /\.(?:avif|gif|jpe?g|m4a|mid|mov|mp3|mp4|png|svg|wav|webp)(?:[?#].*)?$/i;
 function isHttpUrl(value: string): boolean {
   try {
@@ -67,6 +79,7 @@ function wrapCodeFence(value: string): string {
 export function transformClipboardText(
   clipboardText: string,
   selectedText = '',
+  labels: SmartPasteLabels = DEFAULT_LABELS,
 ): SmartPasteResult {
   const trimmed = clipboardText.trim();
   const label = escapeLabel(selectedText.trim());
@@ -74,16 +87,16 @@ export function transformClipboardText(
 
   if (isHttpUrl(trimmed)) {
     if (MEDIA_EXTENSION.test(trimmed)) {
-      return { kind: 'media-url', text: `![${label || '图片'}](${trimmed})` };
+      return { kind: 'media-url', text: `![${label || labels.image}](${trimmed})` };
     }
-    return { kind: 'url', text: `[${label || '链接'}](${trimmed})` };
+    return { kind: 'url', text: `[${label || labels.link}](${trimmed})` };
   }
 
   if (isWindowsPath(trimmed)) {
     const kind = MEDIA_EXTENSION.test(trimmed) ? 'media-path' : 'path';
     const prefix = kind === 'media-path' ? '!' : '';
     const fileUrl = windowsPathToFileUrl(trimmed);
-    return { kind, text: `${prefix}[${label || '本地'}](${fileUrl})` };
+    return { kind, text: `${prefix}[${label || labels.local}](${fileUrl})` };
   }
 
   const table = convertTsv(clipboardText);

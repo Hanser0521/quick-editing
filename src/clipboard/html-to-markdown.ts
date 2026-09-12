@@ -52,7 +52,12 @@ function safeStyle(element: Element): string {
     .replace(/"/g, '&quot;');
 }
 
-function renderList(element: Element, ordered: boolean, depth = 0): string {
+function renderList(
+  element: Element,
+  ordered: boolean,
+  imageFallback: string,
+  depth = 0,
+): string {
   const items = Array.from(element.children).filter(
     (child) => child.tagName.toLowerCase() === 'li',
   );
@@ -66,20 +71,25 @@ function renderList(element: Element, ordered: boolean, depth = 0): string {
         child.nodeType === 1 &&
         ['ul', 'ol'].includes((child as Element).tagName.toLowerCase())
       ))
-      .map(renderNode)
+      .map((child) => renderNode(child, imageFallback))
       .join('')
       .replace(/\s+/g, ' ')
       .trim();
     const marker = ordered ? `${index + 1}.` : '-';
     lines.push(`${'  '.repeat(depth)}${marker} ${content}`);
     for (const nested of nestedLists) {
-      lines.push(renderList(nested, nested.tagName.toLowerCase() === 'ol', depth + 1).trimEnd());
+      lines.push(renderList(
+        nested,
+        nested.tagName.toLowerCase() === 'ol',
+        imageFallback,
+        depth + 1,
+      ).trimEnd());
     }
   });
   return `${lines.join('\n')}\n\n`;
 }
 
-function renderTable(element: Element): string {
+function renderTable(element: Element, imageFallback: string): string {
   let pendingRowSpans: number[] = [];
   const rows = Array.from(element.querySelectorAll('tr'))
     .filter((row) => row.closest('table') === element)
@@ -102,7 +112,9 @@ function renderTable(element: Element): string {
         appendPendingCells();
         const columnSpan = Math.max(1, Number.parseInt(cell.getAttribute('colspan') ?? '1', 10) || 1);
         const rowSpan = Math.max(1, Number.parseInt(cell.getAttribute('rowspan') ?? '1', 10) || 1);
-        output.push(escapeTableCell(Array.from(cell.childNodes).map(renderNode).join('')));
+        output.push(escapeTableCell(Array.from(cell.childNodes)
+          .map((child) => renderNode(child, imageFallback))
+          .join('')));
         for (let offset = 1; offset < columnSpan; offset += 1) output.push(' ');
         if (rowSpan > 1) {
           for (let offset = 0; offset < columnSpan; offset += 1) {
@@ -135,13 +147,15 @@ function renderTable(element: Element): string {
   ].join('\n')}\n\n`;
 }
 
-function renderNode(node: Node): string {
+function renderNode(node: Node, imageFallback: string): string {
   if (node.nodeType === 3) return (node.nodeValue ?? '').replace(/\u00a0/g, ' ');
   if (node.nodeType !== 1) return '';
 
   const element = node as Element;
   const tag = element.tagName.toLowerCase();
-  const content = (): string => Array.from(element.childNodes).map(renderNode).join('');
+  const content = (): string => Array.from(element.childNodes)
+    .map((child) => renderNode(child, imageFallback))
+    .join('');
   if (['script', 'style', 'meta', 'link', 'noscript'].includes(tag)) return '';
   if (tag === 'br') return '\n';
   if (/^h[1-6]$/.test(tag)) return `${'#'.repeat(Number(tag.slice(1)))} ${content().trim()}\n\n`;
@@ -171,12 +185,12 @@ function renderNode(node: Node): string {
     return href ? `[${label || href}](${markdownDestination(href)})` : label;
   }
   if (tag === 'img') {
-    const alt = escapeMarkdown(element.getAttribute('alt') || '图片');
+    const alt = escapeMarkdown(element.getAttribute('alt') || imageFallback);
     const source = safeUrl(element.getAttribute('src') ?? '', true);
     return source ? `![${alt}](${markdownDestination(source)})` : alt;
   }
-  if (tag === 'ul' || tag === 'ol') return renderList(element, tag === 'ol');
-  if (tag === 'table') return renderTable(element);
+  if (tag === 'ul' || tag === 'ol') return renderList(element, tag === 'ol', imageFallback);
+  if (tag === 'table') return renderTable(element, imageFallback);
   if (tag === 'blockquote') {
     return `${content().trim().split('\n').map((line) => `> ${line}`).join('\n')}\n\n`;
   }
@@ -191,12 +205,15 @@ function renderNode(node: Node): string {
 export function htmlToMarkdown(
   html: string,
   parse: HtmlDocumentParser = (source) => new DOMParser().parseFromString(source, 'text/html'),
+  imageFallback = '图片',
 ): string {
   const source = /<(?:html|body)\b/i.test(html)
     ? html
     : `<!doctype html><html><body>${html}</body></html>`;
   const document = parse(source);
-  const markdown = Array.from(document.body.childNodes).map(renderNode).join('');
+  const markdown = Array.from(document.body.childNodes)
+    .map((node) => renderNode(node, imageFallback))
+    .join('');
   return markdown
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')

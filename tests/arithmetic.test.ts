@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluateArithmetic } from '../src/utils/arithmetic.ts';
+import {
+  ArithmeticEvaluationError,
+  evaluateArithmetic,
+} from '../src/utils/arithmetic.ts';
 
 test('respects arithmetic precedence and parentheses', () => {
   assert.equal(evaluateArithmetic('2 + 3 * 4'), 14);
@@ -18,4 +21,11 @@ test('rejects code and malformed expressions', () => {
   assert.throws(() => evaluateArithmetic('1 +'));
   assert.throws(() => evaluateArithmetic('1 / 0'));
   assert.throws(() => evaluateArithmetic('(1 + 2'));
+});
+
+test('returns stable error codes that the UI can localize', () => {
+  assert.throws(
+    () => evaluateArithmetic('1 / 0'),
+    (error) => error instanceof ArithmeticEvaluationError && error.code === 'divisionByZero',
+  );
 });

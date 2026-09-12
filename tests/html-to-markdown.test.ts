@@ -30,6 +30,13 @@ test('keeps images and safe color styles while dropping scripts', () => {
   );
 });
 
+test('uses the localized fallback for images without alt text', () => {
+  assert.equal(
+    htmlToMarkdown('<img src="x.png">', parse, 'Image'),
+    '![Image](x.png)',
+  );
+});
+
 test('drops dangerous links, image data, and executable CSS values', () => {
   const html = '<p><a href="java&#10;script:alert(1)">危险</a><img src="data:text/html;base64,PHNjcmlwdD4=" alt="坏图"><span style="color: expression(alert(1)); background: url(x); background-color: #fff">安全</span></p>';
   assert.equal(

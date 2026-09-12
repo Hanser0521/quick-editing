@@ -7,7 +7,7 @@ class Plugin {}
 class PluginSettingTab {}
 
 const obsidian = new Proxy(
-  { Plugin, PluginSettingTab },
+  { Plugin, PluginSettingTab, getLanguage: () => 'en' },
   {
     get(target, property) {
       return property in target ? target[property] : function MockObsidianApi() {};

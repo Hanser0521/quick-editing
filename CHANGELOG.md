@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+## 1.0.5 - 2026-09-12
+
+- Added complete English localization using Obsidian's official `getLanguage()`
+  API, with Simplified Chinese for Chinese language variants and English as the
+  fallback for all other locales.
+- Localized all 101 command names, menus, settings, transformation previews,
+  notices, arithmetic errors, and generated smart-paste/image labels while
+  retaining bilingual command search.
+- Added declarative setting definitions for Obsidian 1.13 and later so Quick
+  Editing settings participate in global Settings search, while preserving the
+  classic settings page for older supported Obsidian versions.
+- Upgraded the official Obsidian ESLint plugin and enabled its English-locale
+  validation rules in release checks.
+- Added tests for locale selection, interpolation, localized generated content,
+  and arithmetic error codes, plus a release guard requiring exact English-name
+  coverage for every active command.
+- Updated vulnerable indirect development dependencies to patched versions;
+  both the full and production-only npm audits now report zero known
+  vulnerabilities.
+
 ## 1.0.4 - 2026-08-06
 
 - Show each configured text color and highlighter color as an inline swatch in

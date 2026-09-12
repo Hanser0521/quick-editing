@@ -2,6 +2,24 @@
  * Evaluates a deliberately small arithmetic grammar without executing code.
  * Supported syntax: decimal numbers, parentheses, +, -, *, /, and x as *.
  */
+export type ArithmeticErrorCode =
+  | 'numberRequired'
+  | 'missingClosingParenthesis'
+  | 'divisionByZero'
+  | 'emptyExpression'
+  | 'unsupportedCharacter'
+  | 'nonFiniteResult';
+
+export class ArithmeticEvaluationError extends Error {
+  readonly code: ArithmeticErrorCode;
+
+  constructor(code: ArithmeticErrorCode) {
+    super(code);
+    this.name = 'ArithmeticEvaluationError';
+    this.code = code;
+  }
+}
+
 export function evaluateArithmetic(source: string): number {
   const input = source.replace(/[xX×]/g, '*');
   let position = 0;
@@ -13,7 +31,7 @@ export function evaluateArithmetic(source: string): number {
   const parseNumber = (): number => {
     skipWhitespace();
     const match = /^(?:\d+(?:\.\d*)?|\.\d+)/.exec(input.slice(position));
-    if (!match) throw new Error('需要数字');
+    if (!match) throw new ArithmeticEvaluationError('numberRequired');
     position += match[0].length;
     return Number(match[0]);
   };
@@ -30,7 +48,7 @@ export function evaluateArithmetic(source: string): number {
       position += 1;
       const value = parseExpression();
       skipWhitespace();
-      if (input[position] !== ')') throw new Error('缺少右括号');
+      if (input[position] !== ')') throw new ArithmeticEvaluationError('missingClosingParenthesis');
       position += 1;
       return value;
     }
@@ -45,7 +63,7 @@ export function evaluateArithmetic(source: string): number {
       if (operator !== '*' && operator !== '/') return value;
       position += 1;
       const right = parsePrimary();
-      if (operator === '/' && right === 0) throw new Error('不能除以零');
+      if (operator === '/' && right === 0) throw new ArithmeticEvaluationError('divisionByZero');
       value = operator === '*' ? value * right : value / right;
     }
   };
@@ -62,10 +80,10 @@ export function evaluateArithmetic(source: string): number {
     }
   };
 
-  if (input.trim() === '') throw new Error('表达式为空');
+  if (input.trim() === '') throw new ArithmeticEvaluationError('emptyExpression');
   const result = parseExpression();
   skipWhitespace();
-  if (position !== input.length) throw new Error('包含不支持的字符');
-  if (!Number.isFinite(result)) throw new Error('结果不是有限数值');
+  if (position !== input.length) throw new ArithmeticEvaluationError('unsupportedCharacter');
+  if (!Number.isFinite(result)) throw new ArithmeticEvaluationError('nonFiniteResult');
   return result;
 }

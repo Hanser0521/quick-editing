@@ -76,7 +76,10 @@ export function featureGroupForCommand(commandId: string): FeatureGroupKey | und
   return undefined;
 }
 
-export function commandCatalogEntry(command: Command): CommandCatalogEntry {
+export function commandCatalogEntry(
+  command: Command,
+  alternateNames: readonly string[] = [],
+): CommandCatalogEntry {
   const group = featureGroupForCommand(command.id);
   const groupDefinition = FEATURE_GROUPS.find((definition) => definition.key === group);
   return {
@@ -86,6 +89,7 @@ export function commandCatalogEntry(command: Command): CommandCatalogEntry {
     keywords: [
       command.id,
       command.name,
+      ...alternateNames,
       ...(groupDefinition?.keywords ?? []),
       groupDefinition?.name ?? '',
     ].filter(Boolean),

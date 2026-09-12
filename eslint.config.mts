@@ -14,7 +14,7 @@ export default defineConfig(
       },
     },
   },
-  ...obsidianmd.configs.recommended,
+  ...obsidianmd.configs.recommendedWithLocalesEn,
   {
     files: ['src/**/*.ts'],
     rules: {
@@ -22,7 +22,17 @@ export default defineConfig(
         'warn',
         {
           enforceCamelCaseLower: true,
-          brands: ['Quick Editing', 'Office'],
+          brands: ['Quick Editing', 'Obsidian', 'Office', 'Markdown', 'Mermaid', 'GitHub', 'Latin', 'Chinese', 'English'],
+          acronyms: ['API', 'CJK', 'DOM', 'HTML', 'ID', 'URL'],
+        },
+      ],
+      'obsidianmd/ui/sentence-case-locale-module': [
+        'warn',
+        {
+          enforceCamelCaseLower: true,
+          brands: ['Quick Editing', 'Obsidian', 'Office', 'Markdown', 'Mermaid', 'GitHub', 'Latin', 'Chinese', 'English'],
+          acronyms: ['API', 'CJK', 'DOM', 'HTML', 'ID', 'URL'],
+          ignoreRegex: ['^\\d', '^[*_~=]'],
         },
       ],
     },
