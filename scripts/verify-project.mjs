@@ -195,6 +195,7 @@ const bannedPatterns = [
   ['selection written as full document', /替换笔记正文\s*\(\s*所选文本/],
   ['legacy temporary link marker', /⚘/],
   ['nested immediate invocation', /\(\s*\)\s*\(\s*\)/],
+  ['scanner-unsafe Array or String at call', /\.at\s*\(/],
 ];
 for (const [label, pattern] of bannedPatterns) {
   for (const file of sourceFiles) {

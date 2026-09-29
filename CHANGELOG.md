@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.6 - 2026-09-29
+
+- Replaced `Array.prototype.at()` and `String.prototype.at()` calls that the
+  Obsidian community scanner could not type safely, clearing 33 cascading
+  TypeScript safety warnings.
+- Added the scanner's four type-aware unsafe-value rules and a regression guard
+  to the local release checks.
+- Clarified that vault enumeration and clipboard access occur only during
+  explicit user-invoked features and never transmit data outside Obsidian.
+
 ## 1.0.5 - 2026-09-12
 
 - Added complete English localization using Obsidian's official `getLanguage()`

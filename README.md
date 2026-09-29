@@ -64,13 +64,16 @@ Quick Editing has no telemetry and makes no network requests. It reads vault
 metadata or note files only when a link or cleanup command requires them. It
 reads clipboard contents only during smart paste or the manual paste command.
 The plugin never deletes image attachment files; the image-link cleanup command
-only changes Markdown content after a preview.
+only changes Markdown content after a preview. Vault enumeration is limited to
+user-invoked file navigation and link-aware commands. Clipboard access occurs
+only during explicit paste, copy, or calculation commands. None of this data is
+transmitted outside Obsidian.
 
 ## 中文说明
 
 Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件。它提供智能符号、格式刷、智能粘贴、内部链接、文本清理、空格与空行整理等高频操作，并为批量修改加入 Markdown 上下文保护、变更预览和撤销入口。
 
-- 当前版本：`1.0.5`
+- 当前版本：`1.0.6`
 - Obsidian 最低版本：`1.8.7`
 - 支持平台：桌面端
 - 实机验证：macOS、Obsidian `1.13.7`

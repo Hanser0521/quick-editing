@@ -40,7 +40,7 @@ function mergeRanges(ranges: MarkdownRange[]): MarkdownRange[] {
     .sort((left, right) => left.from - right.from || right.to - left.to);
   const merged: MarkdownRange[] = [];
   for (const range of sorted) {
-    const previous = merged.at(-1);
+    const previous = merged[merged.length - 1];
     if (previous && range.from <= previous.to) {
       previous.to = Math.max(previous.to, range.to);
       if (!previous.type.includes(range.type)) previous.type = `${previous.type},${range.type}`;

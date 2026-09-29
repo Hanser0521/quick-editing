@@ -58,7 +58,7 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 ***************************************************************************** */
 
 
-const 当前版本 = '1.0.5';
+const 当前版本 = '1.0.6';
 const 功能更新 = t('notice.releaseNotes', { version: 当前版本 });
 const 发布页面 = 'https://github.com/Hanser0521/quick-editing/releases';
 
@@ -3582,7 +3582,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         当前行号 = 当前光标.line;
         let arr = 编辑模式.getRange({line:0,ch:0},{line:当前行号,ch:0}).split("\n");
         //第一个要匹配的 re
-        const lastLine = arr.at(-1) ?? '';
+        const lastLine = arr[arr.length - 1] ?? '';
         const lastHeading = lastLine.match(/^(#+)\s/);
         let re: RegExp;
         if (lastHeading?.[1]) { //当前是标题，则查找上一级标题

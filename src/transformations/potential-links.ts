@@ -75,7 +75,7 @@ function hasWordBoundary(value: string, title: string, start: number): boolean {
   const previous = value[start - 1] ?? '';
   const next = value[start + title.length] ?? '';
   const first = title[0] ?? '';
-  const last = title.at(-1) ?? '';
+  const last = title[title.length - 1] ?? '';
   if (ASCII_WORD.test(first) && ASCII_WORD.test(previous)) return false;
   if (ASCII_WORD.test(last) && ASCII_WORD.test(next)) return false;
   return true;

@@ -47,7 +47,7 @@ export function findAdjacentMatch(
   }
 
   const matches = matchesIn(text.slice(0, from), pattern);
-  const match = matches.at(-1);
+  const match = matches[matches.length - 1];
   if (!match) return undefined;
   return { from: match.index, to: match.index + match[0].length };
 }
