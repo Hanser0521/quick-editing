@@ -1,4 +1,5 @@
 import * as obsidian from 'obsidian';
+import { requireApiVersion } from 'obsidian';
 import {
     ArithmeticEvaluationError,
     evaluateArithmetic,
@@ -9,7 +10,10 @@ import { convertWindowsPathSyntax } from './utils/windows-path';
 import { sanitizeSettings, type QuickEditingSettings } from './settings';
 import { transformClipboardText } from './clipboard/smart-paste';
 import { htmlToMarkdown } from './clipboard/html-to-markdown';
-import { handleClipboardEvent } from './clipboard/event-paste';
+import { handleClipboardEvent, isPasteContextProtected } from './clipboard/event-paste';
+import { captureEditorSnapshot, editorMatchesSnapshot } from './editor/snapshot';
+import { removeNativeHighlightColors } from './transformations/highlight-colors';
+import { markdownToPlainText } from './transformations/plain-text';
 import {
     commandCatalogEntry,
     type CommandCatalogEntry,
@@ -21,6 +25,7 @@ import {
 } from './markdown/context';
 import { convertInternalLinkSelection, type InternalLinkServices } from './obsidian/internal-links';
 import { executeCoreCommand } from './obsidian/command-compat';
+import { isVaultNote } from './obsidian/vault-file';
 import {
     addCjkLatinSpacing,
     removeHorizontalSpaces,
@@ -42,6 +47,7 @@ import { createSettingsSection, renderModernSettings } from './ui/modern-setting
 import { createQuickEditingSettingDefinitions } from './ui/setting-definitions';
 import {
     commandSearchNames,
+    getQuickEditingLocale,
     localizeCommandName,
     t,
     type MessageKey,
@@ -58,7 +64,7 @@ Quick Editing 由 Hanser0521 基于 obsidian-canzi 的 ZH 增强编辑项目继�
 ***************************************************************************** */
 
 
-const 当前版本 = '1.0.6';
+const 当前版本 = '1.0.7';
 const 功能更新 = t('notice.releaseNotes', { version: 当前版本 });
 const 发布页面 = 'https://github.com/Hanser0521/quick-editing/releases';
 
@@ -205,6 +211,25 @@ class QuickEditingPlugin extends obsidian.Plugin {
         return leaf?.view.containerEl.ownerDocument ?? activeDocument;
     }
 
+    private editorClipboard(editor: obsidian.Editor): Clipboard {
+        return (this.获取编辑器文档(editor).defaultView ?? activeWindow).navigator.clipboard;
+    }
+
+    private editorHtmlParser(editor: obsidian.Editor) {
+        const win = (this.获取编辑器文档(editor).defaultView ?? activeWindow) as Window & { DOMParser: typeof DOMParser };
+        return (html: string) => new win.DOMParser().parseFromString(html, 'text/html');
+    }
+
+    private requireVaultFile(): obsidian.TFile | null {
+        const file = this.app.workspace.activeEditor?.file ?? this.app.workspace.getActiveFile();
+        // External files extend TFile in 1.14. Keep editing available, but never
+        // use an external path as the source of vault-relative link operations.
+        const externalFileType = requireApiVersion('1.14.4') ? obsidian.TExternalFile : undefined;
+        if (isVaultNote(file, this.app.vault, externalFileType)) return file;
+        new obsidian.Notice(t('notice.vaultFileRequired'));
+        return null;
+    }
+
     private 在文档显示通知(
         message: string | DocumentFragment,
         duration: number,
@@ -230,7 +255,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         this.registerEvent(this.app.workspace.on('editor-paste', (event, editor) => {
             if (event.defaultPrevented) return;
             if (!this.settings.featureGroups.smartPaste || !this.settings.smartPasteOnPaste) return;
-            const result = handleClipboardEvent(event, editor, undefined, this.smartPasteLabels());
+            const result = handleClipboardEvent(event, editor, this.editorHtmlParser(editor), this.smartPasteLabels());
             if (!result) return;
             event.preventDefault();
             const labels: Record<string, string> = {
@@ -1044,7 +1069,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             `${this.app.vault.configDir}/plugins/${this.manifest.id}`,
         );
         try {
-            await navigator.clipboard.writeText(pluginDir);
+            await activeWindow.navigator.clipboard.writeText(pluginDir);
             new obsidian.Notice(t('notice.pluginPathCopied', { path: pluginDir }));
         } catch (error) {
             console.error("Quick Editing：复制插件目录路径失败", error);
@@ -1480,6 +1505,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
     ) {
         if (!this.获取编辑器信息()) return;
         const editor = 编辑模式;
+        const originalFile = this.app.workspace.activeEditor?.file;
+        const snapshot = captureEditorSnapshot(editor);
         const editorDocument = this.获取编辑器文档(editor);
         const source = editor.getValue();
         const hasSelection = editor.somethingSelected();
@@ -1516,7 +1543,14 @@ class QuickEditingPlugin extends obsidian.Plugin {
             return;
         }
         const applyWithUndoNotice = () => {
+            if (this.获取编辑模式() !== editor
+                || this.app.workspace.activeEditor?.file !== originalFile
+                || !editorMatchesSnapshot(editor, snapshot)) {
+                this.在文档显示通知(t('notice.editorChanged'), 5_000, editorDocument);
+                return;
+            }
             apply();
+            const appliedSource = editor.getValue();
             onApplied?.();
             const editorWindow = editorDocument.defaultView as ObsidianWindow | null;
             if (!editorWindow) {
@@ -1530,7 +1564,14 @@ class QuickEditingPlugin extends obsidian.Plugin {
             const fragment = editorWindow.createFragment();
             fragment.append(t('preview.done', { title, count: summary.estimatedChanges }));
             const undoButton = fragment.createEl('button', { text: t('preview.undo') });
-            undoButton.addEventListener('click', () => editor.undo(), { once: true });
+            undoButton.addEventListener('click', () => {
+                if (editor.getValue() !== appliedSource
+                    || this.app.workspace.activeEditor?.file !== originalFile) {
+                    this.在文档显示通知(t('notice.undoAfterFurtherEdits'), 5_000, editorDocument);
+                    return;
+                }
+                editor.undo();
+            }, { once: true });
             this.在文档显示通知(fragment, 10_000, editorDocument);
         };
         if (!hasSelection && this.settings.previewFullDocumentChanges) {
@@ -1575,7 +1616,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
         };
         编辑模式 = activeEditor;
         聚焦编辑 = 编辑模式.hasFocus();
-        笔记全文 = 编辑模式.getDoc();   //此方法获取的笔记全文 是对象，不是文本
+        笔记全文 = 编辑模式; // Editor implements the document methods; getDoc() is deprecated in 1.14.
         笔记正文 = this.获取笔记正文(); //此处获取的是笔记内容的纯文本
         所选文本 = this.获取所选文本();
         当前光标 = 编辑模式.getCursor();
@@ -1769,7 +1810,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     切换文件列表(_num: number) {
         if (!this.获取编辑器信息()) return;
-        当前文件 = this.app.workspace.getActiveFile();
+        当前文件 = this.requireVaultFile();
         if (!当前文件) return;
         当前文件路径 = 当前文件.path;
         let 父级文件夹 = 当前文件路径.replace(/[^\\/]+$/,"");
@@ -1813,6 +1854,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     转换内部链接() {
         if (!this.获取编辑器信息()) return;
+        const sourceFile = this.requireVaultFile();
+        if (!sourceFile) return;
         if (所选文本 === '') {
             let lreg = /\[\[([^[\]]*)$/;
             let rreg = /^([^[\]]*)\]\]/;
@@ -1829,7 +1872,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
             }
         }
 
-        const sourcePath = this.app.workspace.activeEditor?.file?.path ?? '';
+        const sourcePath = sourceFile.path;
         const services: InternalLinkServices = {
             resolveLink: (linkpath, path) => this.app.metadataCache.getFirstLinkpathDest(linkpath, path),
             resolveAlias: (alias) => this.app.vault.getMarkdownFiles().find((file) => {
@@ -1856,7 +1899,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     转换潜在链接() {
         if (!this.获取编辑器信息()) return;
-        const activeFile = this.app.workspace.activeEditor?.file;
+        const activeFile = this.requireVaultFile();
+        if (!activeFile) return;
         const titles = this.settings.linkWords.trim() === ""
             ? this.app.vault.getMarkdownFiles()
                 .filter((file) => file.path !== activeFile?.path)
@@ -1907,38 +1951,16 @@ class QuickEditingPlugin extends obsidian.Plugin {
         };
     };
 
-    转换粗体() {
+    private 应用核心格式(commandId: string): void {
         if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){
-            if(isGLS){
-                isGLS = false;
-                newNotice?.hide();
-                new obsidian.Notice(t('notice.brushClosed'));
-            }
-            笔记全文.replaceRange("****", 当前光标, 当前光标);
-            编辑模式.exec("goRight");
-            编辑模式.exec("goRight");
-        }else{
-            let link = /.*(<b>|\*\*)([^*]*)(<\/b>|\*\*).*/g;	//是否包含加粗符号
-            let link1 = /^[^*](<\/?b>|\*\*)[^*]*$/;	//是否只包含一侧的**
-            if (link1.test(所选文本)){
-                return; //new obsidian.Notice("只有一侧出现==符号");
-            }else if (link.test(所选文本)){
-                所选文本 = 所选文本.replace(/(<\/?b>|\*\*)/g,"");    //new obsidian.Notice("成对出现**符号");
-                this.替换所选文本 (所选文本);
-            }else{
-                if(/^<.*>$/.test(所选文本) || /[,.?!，。、？！]$/.test(所选文本)){
-                    所选文本 = 所选文本.replace(/^/,"<b>");
-                    所选文本 = 所选文本.replace(/$/,"</b>");
-                }else{
-                    所选文本 = 所选文本.replace(/^([\t\s]*)([^\t\s])/mg,"$1**$2").replace(/([^\t\s])([\t\s]*)$/mg,"$1**$2");
-                    所选文本 = 所选文本.replace(/^\*\*\*\*$/mg,"");
-                }
-                this.替换所选文本 (所选文本);
-                编辑模式.exec("goRight");
-            }
+        if (!executeCoreCommand(this.app, commandId)) {
+            new obsidian.Notice(t('notice.coreFormattingUnavailable'));
         }
-    };
+    }
+
+    转换粗体() {
+        this.应用核心格式("editor:toggle-bold");
+    }
 
     高亮格式刷() {
         if (!this.获取编辑器信息()) return;
@@ -2049,32 +2071,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
 
     转换高亮() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){
-            if(isGLS){
-                isGLS = false;
-                newNotice?.hide();
-                new obsidian.Notice(t('notice.brushClosed'));
-            }
-            笔记全文.replaceRange("====", 当前光标, 当前光标);
-            编辑模式.exec("goRight");
-            编辑模式.exec("goRight");
-        }else{
-            let link = /==[^=]*==/;	//是否包含高亮符号
-            let link1 = /^[^=]*==[^=]*$/;	//是否只包含一侧的==
-            if (link1.test(所选文本)){
-                return; //new obsidian.Notice("只有一侧出现==符号");
-            }else if (link.test(所选文本)){
-                所选文本 = 所选文本.replace(/==/g,"");    //new obsidian.Notice("成对出现==符号");
-                this.替换所选文本 (所选文本);
-            }else{
-                所选文本 = 所选文本.replace(/^([\t\s]*)([^\t\s])/mg,"$1==$2").replace(/([^\t\s])([\t\s]*)$/mg,"$1==$2");
-                所选文本 = 所选文本.replace(/^====$/mg,"");
-                this.替换所选文本 (所选文本);
-                编辑模式.exec("goRight");
-            }
-        }
-    };
+        this.应用核心格式("editor:toggle-highlight");
+    }
 
     转换高亮1() {
         if (!this.获取编辑器信息()) return;
@@ -2312,31 +2310,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
         };
     };
     转换斜体() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){
-            if(isXTS){
-                isXTS = false;
-                newNotice?.hide();
-                new obsidian.Notice(t('notice.brushClosed'));
-            }
-            笔记全文.replaceRange("**", 当前光标, 当前光标);
-            编辑模式.exec("goRight");
-        }else{
-            let link = /\*[^*]*\*/;	//是否包含高亮符号
-            let link1 = /^[^*]*\*[^*]*$/;	//是否只包含一侧的\*
-            if (link1.test(所选文本)){
-                return; //new obsidian.Notice("只有一侧出现\*符号");
-            }else if (link.test(所选文本)){
-                所选文本 = 所选文本.replace(/\*/g,"");    //new obsidian.Notice("成对出现\*符号");
-                this.替换所选文本 (所选文本);
-            }else{
-                所选文本 = 所选文本.replace(/^(.*)$/mg,"*$1*");
-                所选文本 = 所选文本.replace(/^\*\*$/mg,"");
-                this.替换所选文本 (所选文本);
-                编辑模式.exec("goRight");
-            }
-        }
-    };
+        this.应用核心格式("editor:toggle-italics");
+    }
 
     删除线格式刷(){
         if (!this.获取编辑器信息()) return;
@@ -2354,33 +2329,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
         }
     };
     转换删除线() {
-        if (!this.获取编辑器信息()) return;
-        if(所选文本 == ""){
-            if(isSCS){
-                isSCS = false;
-                newNotice?.hide();
-                new obsidian.Notice(t('notice.brushClosed'));
-            }
-            笔记全文.replaceRange("~~~~", 当前光标, 当前光标);
-            编辑模式.exec("goRight");
-            编辑模式.exec("goRight");
-        }else{
-            let link = /~~[^~]*~~/;	//是否包含删除线符号
-            let link1 = /^[^~]*~~[^~]*$/;	//是否只包含一侧的~~
-            if (link1.test(所选文本)){
-                return; //new obsidian.Notice("只有一侧出现~~符号");
-            }else if (link.test(所选文本)){
-                所选文本 = 所选文本.replace(/~~/g,"");    //new obsidian.Notice("成对出现~~符号");
-                this.替换所选文本 (所选文本);
-            }else{
-                所选文本 = 所选文本.replace(/^(.*)$/mg,"~~$1~~");
-                所选文本 = 所选文本.replace(/^~~~~$/mg,"");
-                this.替换所选文本 (所选文本);
-                编辑模式.exec("goRight");
-            }
-        }
-
-    };
+        this.应用核心格式("editor:toggle-strikethrough");
+    }
 
     下划线格式刷(){
         if (!this.获取编辑器信息()) return;
@@ -2872,19 +2822,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 }
             }
         }else{
-            let mdText = /(^#+\s|(?<=^|\s*)#|^>|^- \[( |x)\]|^\+ |<[^<>]+?>|^1\. |^\s*- |^-+$|^\*+$|==\*|\*==|==\*\*|\*\*==|==\*\*\*|\*\*\*==)/mg;
-            所选文本 = 所选文本.replace(mdText,"");
-            所选文本 = 所选文本.replace(/^[ ]+|[ ]+$/mg,"");
-            所选文本 = 所选文本.replace(/!?\[\[([^[\]|]*\|)*([^()[\]]+)\]\]/g,"$2");
-            所选文本 = 所选文本.replace(/!?\[+([^[\]()]+)\]+\(([^()]+)\)/g,"$1");
-            所选文本 = 所选文本.replace(/`([^`]+)`/g,"$1");
-            所选文本 = 所选文本.replace(/_([^_]+)_/g,"$1");
-            所选文本 = 所选文本.replace(/==([^=]+)==/g,"$1");
-            所选文本 = 所选文本.replace(/\*\*?([^*]+)\*\*?/g,"$1");
-            所选文本 = 所选文本.replace(/~~([^~]+)~~/g,"$1");
-            所选文本 = 所选文本.replace(/(\r*\n)+/mg,"\r\n");
-
-			this.替换所选文本 (所选文本);
+            this.替换所选文本(markdownToPlainText(所选文本));
         }
     };
 
@@ -3081,7 +3019,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     async 指定当前文件名 () {
         if (!this.获取编辑器信息()) return;
-        const file = this.app.workspace.getActiveFile();
+        const file = this.requireVaultFile();
         const newBaseName = 所选文本.trim();
         if (!file || newBaseName === "") return;
         if (/[\\/:*?"<>|]/.test(newBaseName) || newBaseName === "." || newBaseName === "..") {
@@ -3112,9 +3050,14 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if (!this.获取编辑器信息()) return;
         const originalEditor = 编辑模式;
         const originalSelection = 所选文本;
+        const originalFile = this.app.workspace.activeEditor?.file;
+        const snapshot = captureEditorSnapshot(originalEditor);
+        const protectedContext = isPasteContextProtected(originalEditor);
         try {
-            const clipboardText = await navigator.clipboard.readText();
-            const result = transformClipboardText(
+            const clipboardText = await this.editorClipboard(originalEditor).readText();
+            const result = protectedContext && clipboardText !== ''
+                ? { kind: 'code' as const, text: clipboardText }
+                : transformClipboardText(
                 clipboardText,
                 originalSelection,
                 this.smartPasteLabels(),
@@ -3123,8 +3066,10 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 new obsidian.Notice(t('notice.emptyClipboard'));
                 return;
             }
-            if (this.获取编辑模式() !== originalEditor) {
-                new obsidian.Notice(t('notice.activeNoteChanged'));
+            if (this.获取编辑模式() !== originalEditor
+                || this.app.workspace.activeEditor?.file !== originalFile
+                || !editorMatchesSnapshot(originalEditor, snapshot)) {
+                new obsidian.Notice(t('notice.editorChanged'));
                 return;
             }
             originalEditor.replaceSelection(result.text);
@@ -3145,26 +3090,35 @@ class QuickEditingPlugin extends obsidian.Plugin {
 
     async 图文粘贴() {
         if (!this.获取编辑器信息()) return;
-        if (typeof navigator.clipboard.read !== 'function') {
+        const originalEditor = 编辑模式;
+        if (isPasteContextProtected(originalEditor)) {
+            new obsidian.Notice(t('notice.protectedContext'));
+            return;
+        }
+        const clipboard = this.editorClipboard(originalEditor);
+        if (typeof clipboard.read !== 'function') {
             new obsidian.Notice(t('notice.richClipboardUnsupported'));
             return;
         }
-        const originalEditor = 编辑模式;
+        const originalFile = this.app.workspace.activeEditor?.file;
+        const snapshot = captureEditorSnapshot(originalEditor);
         try {
-            const items = await navigator.clipboard.read();
+            const items = await clipboard.read();
             const htmlItem = items.find((item) => item.types.includes('text/html'));
             if (!htmlItem) {
                 new obsidian.Notice(t('notice.noHtmlClipboard'));
                 return;
             }
             const blob = await htmlItem.getType('text/html');
-            const markdown = htmlToMarkdown(await blob.text(), undefined, t('output.image'));
+            const markdown = htmlToMarkdown(await blob.text(), this.editorHtmlParser(originalEditor), t('output.image'));
             if (markdown === '') {
                 new obsidian.Notice(t('notice.noConvertibleHtml'));
                 return;
             }
-            if (this.获取编辑模式() !== originalEditor) {
-                new obsidian.Notice(t('notice.activeNoteChanged'));
+            if (this.获取编辑模式() !== originalEditor
+                || this.app.workspace.activeEditor?.file !== originalFile
+                || !editorMatchesSnapshot(originalEditor, snapshot)) {
+                new obsidian.Notice(t('notice.editorChanged'));
                 return;
             }
             originalEditor.replaceSelection(markdown);
@@ -3188,7 +3142,7 @@ class QuickEditingPlugin extends obsidian.Plugin {
                 expression: 所选文本,
                 result: String(结果),
             }));
-            void navigator.clipboard.writeText(String(结果)).catch((error) => {
+            void this.editorClipboard(编辑模式).writeText(String(结果)).catch((error) => {
                 console.error("Quick Editing：写入剪贴板失败", error);
                 new obsidian.Notice(t('notice.calculationClipboardFailed'));
             });
@@ -3231,7 +3185,8 @@ class QuickEditingPlugin extends obsidian.Plugin {
         for (const file of markdownFiles) {
             _linkTxt +=  "[["+file.basename+"]]\n"
         }
-        void navigator.clipboard.writeText(_linkTxt).then(() => {
+        const clipboard = (searchView.containerEl.ownerDocument.defaultView ?? activeWindow).navigator.clipboard;
+        void clipboard.writeText(_linkTxt).then(() => {
             new obsidian.Notice(t('notice.searchResultsCopied'));
         }).catch((error) => {
             console.error("Quick Editing：写入搜索结果失败", error);
@@ -3242,10 +3197,10 @@ class QuickEditingPlugin extends obsidian.Plugin {
     获取标注文本() {
         if (!this.获取编辑器信息()) return;
         if (!笔记正文) return;
-        let tmp = 笔记正文.replace(/^(?!#+ |#注释|#标注|#批注|#反思|#备注|.*==|.*%%).*$|^[^#\n%=]*(==|%%)|(==|%%)[^\n%=]*$|(==|%%)[^\n%=]*(==|%%)/mg,"\n");
+        let tmp = removeNativeHighlightColors(笔记正文).replace(/^(?!#+ |#注释|#标注|#批注|#反思|#备注|.*==|.*%%).*$|^[^#\n%=]*(==|%%)|(==|%%)[^\n%=]*$|(==|%%)[^\n%=]*(==|%%)/mg,"\n");
         tmp = tmp.replace(/[\r\n|\n]+/g,"\n")
         new obsidian.Notice(t('notice.annotationsCopied'));
-        void navigator.clipboard.writeText(tmp).catch((error) => {
+        void this.editorClipboard(编辑模式).writeText(tmp).catch((error) => {
             console.error("Quick Editing：写入标注文本失败", error);
             new obsidian.Notice(t('notice.clipboardWriteFailed'));
         });
@@ -3256,13 +3211,9 @@ class QuickEditingPlugin extends obsidian.Plugin {
         if(所选文本 == ""){
             new obsidian.Notice(t('notice.selectTextFirst'));
         }else{
-            let mdText = /(^#+\s|(?<=^|\s*)#|^>|^- \[( |x)\]|^\+ |<[^<>]+>|^1\. |^-+$|^\*+$|==|\*+|~~|```|!*\[\[|\]\])/mg;
-            所选文本 = 所选文本.replace(/\[([^[\]]*)\]\([^()]+\)/img,"$1");
-            所选文本 = 所选文本.replace(mdText,"");
-            所选文本 = 所选文本.replace(/^[ ]+|[ ]+$/mg,"");
-            所选文本 = 所选文本.replace(/(\r\n|\n)+/mg,"\n");
+            const plainText = markdownToPlainText(所选文本);
             new obsidian.Notice(t('notice.plainTextCopied'));
-            void navigator.clipboard.writeText(所选文本).catch((error) => {
+            void this.editorClipboard(编辑模式).writeText(plainText).catch((error) => {
                 console.error("Quick Editing：写入纯文本失败", error);
                 new obsidian.Notice(t('notice.clipboardWriteFailed'));
             });
@@ -3407,7 +3358,10 @@ class QuickEditingPlugin extends obsidian.Plugin {
         }else{
             new obsidian.Notice(t('notice.listDiagramCopied'));
             输出语法 = 输出语法.replace(/↵/g,"\n");
-            navigator.clipboard.writeText("```mermaid\ngraph TD\n"+输出语法+"\n```\n");
+            void this.editorClipboard(编辑模式).writeText("```mermaid\ngraph TD\n"+输出语法+"\n```\n").catch((error) => {
+                console.error("Quick Editing：写入图示失败", error);
+                new obsidian.Notice(t('notice.clipboardWriteFailed'));
+            });
         };
         */
     }
@@ -3862,7 +3816,7 @@ class QuickEditingSettingTab extends obsidian.PluginSettingTab {
     }
 
     getSettingDefinitions(): obsidian.SettingDefinitionItem[] {
-        return createQuickEditingSettingDefinitions(this.plugin);
+        return createQuickEditingSettingDefinitions(this.plugin, getQuickEditingLocale());
     }
 
     getControlValue(key: string): unknown {

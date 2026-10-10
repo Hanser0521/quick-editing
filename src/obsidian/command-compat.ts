@@ -11,6 +11,10 @@ type AppWithCommandManager = App & {
 const SUPPORTED_COMMANDS = new Set([
   'app:open-settings',
   'global-search:open',
+  'editor:toggle-bold',
+  'editor:toggle-italics',
+  'editor:toggle-strikethrough',
+  'editor:toggle-highlight',
 ]);
 
 export function executeCoreCommand(app: App, commandId: string): boolean {

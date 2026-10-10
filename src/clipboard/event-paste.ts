@@ -1,5 +1,7 @@
 import type { Editor } from 'obsidian';
 
+import { isMarkdownRangeProtected, markdownProtectedRanges } from '../markdown/context.ts';
+
 import { htmlToMarkdown, type HtmlDocumentParser } from './html-to-markdown.ts';
 import {
   transformClipboardText,
@@ -18,6 +20,17 @@ export interface ClipboardPasteResult {
 }
 
 const STRUCTURED_HTML = /<(?:table|thead|tbody|tr|t[dh]|p|div|ul|ol|li|h[1-6]|pre|blockquote|strong|em|a|img)\b/i;
+
+export function isPasteContextProtected(editor: Editor): boolean {
+  const source = editor.getValue();
+  const ranges = markdownProtectedRanges(source);
+  return editor.listSelections().some(({ anchor, head }) => isMarkdownRangeProtected(
+    source,
+    editor.posToOffset(anchor),
+    editor.posToOffset(head),
+    ranges,
+  ));
+}
 
 export function transformClipboardPayload(
   payload: ClipboardPayload,
@@ -56,7 +69,7 @@ export function handleClipboardEvent(
     parse,
     labels,
   );
-  if (!result) return null;
+  if (!result || isPasteContextProtected(editor)) return null;
   event.preventDefault();
   editor.replaceSelection(result.text);
   return result;

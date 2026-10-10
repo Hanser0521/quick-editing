@@ -27,6 +27,10 @@ with attribution and public upstream authorization recorded in
 - One-click removal of image links without deleting attachment files.
 - Configured text and highlighter colors shown directly in the status bar
   format-brush menu for quick visual selection.
+- Native Obsidian color highlights remain core-managed; plain-text extraction
+  recognizes their color markers. Protected-context paste stays native.
+- Text cleanup also works on externally opened Markdown files. Vault-specific
+  link, rename, and sibling-navigation commands require a vault note.
 
 ## Language support
 
@@ -73,10 +77,10 @@ transmitted outside Obsidian.
 
 Quick Editing 是一款面向 Obsidian 桌面端的 Markdown 快捷编辑插件。它提供智能符号、格式刷、智能粘贴、内部链接、文本清理、空格与空行整理等高频操作，并为批量修改加入 Markdown 上下文保护、变更预览和撤销入口。
 
-- 当前版本：`1.0.6`
+- 当前版本：`1.0.7`
 - Obsidian 最低版本：`1.8.7`
 - 支持平台：桌面端
-- 实机验证：macOS、Obsidian `1.13.7`
+- 实机验证：macOS、Obsidian `1.14.4`
 - 插件 ID：`quick-editing`
 
 Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-canzi/Enhanced-editing](https://github.com/obsidian-canzi/Enhanced-editing) 继续维护。项目已更名并使用新的插件 ID，不会覆盖旧版“增强编辑”的安装目录。
@@ -102,6 +106,9 @@ Quick Editing 由 [Hanser0521](https://github.com/Hanser0521) 基于 [obsidian-c
 - 状态栏格式刷：文字颜色 1–5 与荧光笔 1–5 会直接显示对应色块；即使 macOS 启用原生菜单，也会使用可显示颜色的 Obsidian 菜单。
 - 中英文界面：插件通过 Obsidian 官方 `getLanguage()` API 自动跟随语言；中文语言变体显示简体中文，其他语言回退为英文。命令、菜单、设置、预览、通知和自动生成的默认标签均已本地化，中英文命令名都可以被搜索。
 - 新版设置：Obsidian 1.13 及以上使用可被全局设置搜索发现的声明式设置；最低兼容版本仍保留原有设置页面。
+- 原生彩色高亮：使用 Obsidian 的颜色建议、格式菜单和行内色块；纯文本转换与标注提取会识别颜色标记，保留普通彩色 emoji。
+- 安全粘贴与预览：代码、frontmatter、数学公式、注释和现有链接中的自动粘贴交由核心处理；等待剪贴板或预览确认期间若笔记、内容或选区变化，会取消旧操作。
+- 库外文件：可以编辑和清理从库外打开的 Markdown 文件；依赖库内路径的内链转换、潜在链接、同级文件导航和重命名仅用于库内笔记。
 
 ## 快捷键配置
 

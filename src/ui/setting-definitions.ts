@@ -1,8 +1,8 @@
 import type { SettingDefinition, SettingDefinitionItem } from 'obsidian';
 
-import { FEATURE_GROUPS, type CommandCatalogEntry } from '../features/catalog';
+import { FEATURE_GROUPS, type CommandCatalogEntry } from '../features/catalog.ts';
 import type { FeatureGroupKey } from '../features/types';
-import { t, type MessageKey } from '../i18n';
+import { translate, type MessageKey, type QuickEditingLocale } from '../i18n/core.ts';
 import type { QuickEditingSettings } from '../settings';
 import type { ModernSettingsPlugin } from './modern-settings';
 
@@ -66,8 +66,16 @@ function commandMatches(definition: SettingDefinition, query: string): boolean {
   ].join(' ')).includes(normalizedQuery);
 }
 
-function commandDefinitions(entries: readonly CommandCatalogEntry[]): SettingDefinition[] {
+// The 1.14 changelog documents IDs, but 1.14.4's type package does not yet
+// declare them. Keep the compatibility type local; older hosts ignore IDs.
+export type StableSettingDefinitionItem = SettingDefinitionItem & {
+  id: string;
+  items?: StableSettingDefinitionItem[];
+};
+
+function commandDefinitions(entries: readonly CommandCatalogEntry[]): Array<SettingDefinition & { id: string }> {
   return entries.map((entry) => ({
+    id: `command.${entry.id}`,
     name: entry.name,
     desc: entry.id,
     aliases: [...entry.keywords],
@@ -81,16 +89,20 @@ function commandDefinitions(entries: readonly CommandCatalogEntry[]): SettingDef
 
 export function createQuickEditingSettingDefinitions(
   plugin: ModernSettingsPlugin,
-): SettingDefinitionItem[] {
+  locale: QuickEditingLocale,
+): StableSettingDefinitionItem[] {
+  const t: typeof translate = (key, variables) => translate(key, variables, locale);
   const commands = [...plugin.getCommandCatalog()]
     .sort((left, right) => left.name.localeCompare(right.name));
 
   return [
     {
+      id: 'features',
       type: 'group',
       heading: t('settings.featureSection'),
       items: [
         ...FEATURE_GROUPS.map((definition) => ({
+          id: `feature.${definition.key}`,
           name: t(FEATURE_NAME_KEYS[definition.key]),
           desc: t(FEATURE_DESCRIPTION_KEYS[definition.key]),
           aliases: [definition.name, definition.description, ...definition.keywords],
@@ -101,6 +113,7 @@ export function createQuickEditingSettingDefinitions(
           },
         })),
         {
+          id: 'smartPasteOnPaste',
           name: t('settings.autoPaste'),
           desc: t('settings.autoPasteDescription'),
           aliases: ['smart paste', 'clipboard', '智能粘贴', '剪贴板'],
@@ -112,6 +125,7 @@ export function createQuickEditingSettingDefinitions(
           },
         },
         {
+          id: 'previewFullDocumentChanges',
           name: t('settings.preview'),
           desc: t('settings.previewDescription'),
           aliases: ['preview', 'undo', '预览', '撤销'],
@@ -125,10 +139,12 @@ export function createQuickEditingSettingDefinitions(
       ],
     },
     {
+      id: 'internalLinks',
       type: 'group',
       heading: t('settings.internalLinksSection'),
       items: [
         {
+          id: 'linkWords',
           name: t('settings.potentialTitles'),
           desc: t('settings.potentialTitlesDescription'),
           aliases: ['internal links', 'aliases', '内部链接', '潜在链接'],
@@ -143,9 +159,11 @@ export function createQuickEditingSettingDefinitions(
       ],
     },
     {
+      id: 'colors',
       type: 'group',
       heading: t('settings.colorsSection'),
       items: COLOR_KEYS.map((color) => ({
+        id: color.key,
         name: t(color.label, { index: color.index }),
         desc: t('settings.colorsDescription'),
         aliases: ['format brush', 'color', 'highlight', '格式刷', '颜色', '荧光笔'],
@@ -156,10 +174,12 @@ export function createQuickEditingSettingDefinitions(
       })),
     },
     {
+      id: 'dualWindow',
       type: 'group',
       heading: t('settings.dualWindowSection'),
       items: [
         {
+          id: 'maxScroll',
           name: t('settings.leftWindowScroll'),
           desc: t('settings.leftWindowScrollDescription'),
           aliases: ['scroll', 'dual window', '滚动', '双窗'],
@@ -174,6 +194,7 @@ export function createQuickEditingSettingDefinitions(
       ],
     },
     {
+      id: 'commands',
       type: 'group',
       heading: t('settings.commandSection'),
       search: {
@@ -183,6 +204,7 @@ export function createQuickEditingSettingDefinitions(
       items: commandDefinitions(commands),
     },
     {
+      id: 'coreDivision',
       name: t('settings.coreDivision'),
       desc: t('settings.coreDivisionDescription'),
       aliases: ['Obsidian core', '核心命令', 'color highlights', '彩色高亮'],

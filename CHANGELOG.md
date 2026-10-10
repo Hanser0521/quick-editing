@@ -1,6 +1,27 @@
 # Changelog
 
-## Unreleased
+## 1.0.7 - 2026-10-10
+
+- Updated the Obsidian API dependency to 1.14.4 and replaced the deprecated
+  `Editor.getDoc()` API with direct Editor access.
+- Added stable, language-independent IDs to searchable setting definitions.
+- Recognize native six-color highlight markers when converting or copying plain
+  text and extracting annotations, without adding duplicate core color commands.
+- Delegate bold, italic, strikethrough, and highlight brushes to Obsidian's core
+  formatting commands, inheriting its improved nested-selection behavior.
+- Share a syntax-tree-based plain-text extractor between conversion and copying;
+  nested colored highlights no longer leave stray formatting characters.
+- Leave automatic paste inside code, Frontmatter, math, comments, and existing
+  links to Obsidian; manual smart paste preserves literal clipboard text there.
+- Use the source window's clipboard for paste and copy commands, and the target
+  editor window's HTML parser for popout pastes.
+- Cancel asynchronous paste and preview application when the note, contents, or
+  selections change; refuse quick undo after subsequent edits.
+- Keep text editing and cleanup available for files opened outside the vault,
+  while blocking vault-relative link conversion, sibling navigation, and renaming
+  on external files.
+- Added regression tests for protected paste, editor snapshots, stable setting
+  IDs, and native highlights; updated vulnerable indirect dependencies.
 
 ## 1.0.6 - 2026-09-29
 

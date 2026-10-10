@@ -1,6 +1,10 @@
 import type { enMessages } from './en.ts';
 
 export const zhCnMessages: Record<keyof typeof enMessages, string> = {
+  'notice.coreFormattingUnavailable': '无法应用核心格式，请使用 Obsidian 的格式菜单。',
+  'notice.vaultFileRequired': '此命令需要当前库中的笔记。库外文件仍可使用文本编辑和清理功能。',
+  'notice.editorChanged': '笔记、内容或选区已变化。请重新执行命令，避免应用过期修改。',
+  'notice.undoAfterFurtherEdits': '此次操作后笔记又有修改，请先用编辑器撤销命令撤销后续编辑。',
   'feature.smartSymbols.name': '智能符号',
   'feature.smartSymbols.description': '括号补全、语法跳过、代码块缩写与 Callout 转换。',
   'feature.formatBrush.name': '格式刷',
@@ -105,7 +109,7 @@ export const zhCnMessages: Record<keyof typeof enMessages, string> = {
   'notice.brushOpened': '{name}格式刷已打开。',
   'notice.brushOpenedNoPunctuation': '{name}格式刷已打开。首尾不要选中标点。',
   'notice.welcome': '欢迎使用 Quick Editing！',
-  'notice.releaseNotes': 'Quick Editing {version}\n- 修复 Obsidian 社区扫描警告并接入官方代码检查\n- 格式刷菜单直接显示每组文字和荧光笔颜色',
+  'notice.releaseNotes': 'Quick Editing {version}\n- 优化 Obsidian 1.14 兼容性与原生彩色高亮提取\n- 基础格式刷改用核心命令\n- 加强受保护上下文粘贴、预览安全与弹出窗口支持',
   'notice.releasePage': '查看 Quick Editing GitHub 发布页面',
   'notice.dismiss': '点击此处可关闭提示窗口。',
   'notice.openSettingsFailed': '无法打开设置，请手动进入 Obsidian 设置。',

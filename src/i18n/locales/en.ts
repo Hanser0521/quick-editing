@@ -1,4 +1,8 @@
 export const enMessages = {
+  'notice.coreFormattingUnavailable': 'Could not apply core formatting. Use Obsidian’s formatting menu.',
+  'notice.vaultFileRequired': 'This command requires a note in the current vault. External files can still use text editing and cleanup.',
+  'notice.editorChanged': 'The note, text, or selection changed. Run the command again to avoid applying an outdated edit.',
+  'notice.undoAfterFurtherEdits': 'The note changed after this operation. Use the editor’s undo command to undo later edits first.',
   'feature.smartSymbols.name': 'Smart symbols',
   'feature.smartSymbols.description': 'Complete brackets, skip syntax, expand code blocks, and convert callouts.',
   'feature.formatBrush.name': 'Format brush',
@@ -103,7 +107,7 @@ export const enMessages = {
   'notice.brushOpened': '{name} format brush enabled.',
   'notice.brushOpenedNoPunctuation': '{name} format brush enabled. Do not include punctuation at the beginning or end of the selection.',
   'notice.welcome': 'Welcome to Quick Editing!',
-  'notice.releaseNotes': 'Quick Editing {version}\n- Fixed Obsidian community scanner warnings and added official code checks\n- Showed configured text and highlighter colors in the format brush menu',
+  'notice.releaseNotes': 'Quick Editing {version}\n- Improved Obsidian 1.14 compatibility and native colored-highlight extraction\n- Delegated basic format brushes to core commands\n- Strengthened protected-context paste, preview safety, and popout support',
   'notice.releasePage': 'View the Quick Editing GitHub release page',
   'notice.dismiss': 'Click the notice to dismiss it.',
   'notice.openSettingsFailed': 'Could not open settings. Open Obsidian settings manually.',

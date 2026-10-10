@@ -35,3 +35,11 @@ test('rejects commands outside the documented compatibility boundary', () => {
     commands: { executeCommandById: () => true },
   }), 'workspace:split-vertical'), false);
 });
+
+test('delegates brush formatting to the core inline-formatting commands', () => {
+  const called: string[] = [];
+  const app = fakeApp({ commands: { executeCommandById: (id: string) => { called.push(id); return true; } } });
+  const ids = ['editor:toggle-bold', 'editor:toggle-italics', 'editor:toggle-strikethrough', 'editor:toggle-highlight'];
+  for (const id of ids) assert.equal(executeCoreCommand(app, id), true);
+  assert.deepEqual(called, ids);
+});

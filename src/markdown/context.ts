@@ -10,8 +10,10 @@ export interface MarkdownRange {
   type: string;
 }
 
-interface PositionedNode {
+export interface PositionedNode {
   type: string;
+  value?: string;
+  alt?: string | null;
   position?: {
     start: { offset?: number };
     end: { offset?: number };
@@ -65,7 +67,7 @@ function collectProtectedNodes(node: PositionedNode, output: MarkdownRange[]): v
   for (const child of node.children ?? []) collectProtectedNodes(child, output);
 }
 
-function parseMarkdownTree(markdown: string): PositionedNode {
+export function parseMarkdownTree(markdown: string): PositionedNode {
   return fromMarkdown(markdown, {
     extensions: [frontmatter(['yaml', 'toml']), math()],
     mdastExtensions: [frontmatterFromMarkdown(['yaml', 'toml']), mathFromMarkdown()],
@@ -124,6 +126,23 @@ export function isMarkdownOffsetProtected(markdown: string, offset: number): boo
   return markdownProtectedRanges(markdown).some(
     (range) => offset >= range.from && offset < range.to,
   );
+}
+
+/** A mixed selection must not turn a literal URL/table inside code into Markdown. */
+export function isMarkdownRangeProtected(
+  markdown: string,
+  from: number,
+  to: number,
+  ranges: readonly MarkdownRange[] = markdownProtectedRanges(markdown),
+): boolean {
+  const start = Math.max(0, Math.min(from, to, markdown.length));
+  const end = Math.max(start, Math.min(Math.max(from, to), markdown.length));
+  return ranges.some((range) => start === end
+    ? start >= range.from && (start < range.to
+      // A parser's open code/frontmatter/math block ends at EOF, but typing there
+      // is still inside the block. Conservatively leave boundary pastes native.
+      || (start === markdown.length && start === range.to))
+    : range.from < end && range.to > start);
 }
 
 export function transformMarkdownOutsideProtected(
